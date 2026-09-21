@@ -24,16 +24,16 @@
   function icons(root = document) { root.querySelectorAll('[data-icon]').forEach(el => { el.innerHTML = icon(el.dataset.icon); }); }
   const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const format = value => Number(value).toLocaleString('en-GB', {minimumFractionDigits:2,maximumFractionDigits:2});
-  const fields = ['supplier', 'invoiceNumber', 'date', 'currency', 'net', 'vat', 'total', 'notes'];
+  const fields = ['supplier', 'invoiceNumber', 'date', 'currency', 'supplierVatNumber', 'vatRate', 'net', 'vat', 'total', 'notes'];
   const samples = [
-    {supplier:'Al Noor Stationery LLC',arabic:'مكتبة النور',invoiceNumber:'INV-2026-0481',date:'2026-08-12',currency:'SAR',net:'1950.00',vat:'292.50',total:'2242.50',sourceFile:'al-noor-example',city:'Riyadh',items:[['A4 copy paper · 20 boxes','1,400.00'],['Office stationery set','550.00']]},
-    {supplier:'Desert Print Studio',arabic:'استوديو الطباعة',invoiceNumber:'DPS-00286',date:'2026-08-14',currency:'AED',net:'640.00',vat:'32.00',total:'672.00',sourceFile:'desert-print-example',city:'Dubai',items:[['Business cards · 500 pcs','240.00'],['Brochure printing','400.00']]},
-    {supplier:'مكتبة الصفحات',arabic:'مكتبة الصفحات',invoiceNumber:'PG-00172',date:'2026-08-15',currency:'SAR',net:'800.00',vat:'120.00',total:'920.00',sourceFile:'arabic-stationery-example',city:'Riyadh',items:[['ورق طباعة · Printing paper','500.00'],['أدوات مكتبية · Stationery','300.00']]}
+    {supplier:'Al Noor Stationery LLC',arabic:'مكتبة النور',invoiceNumber:'INV-2026-0481',date:'2026-08-12',currency:'SAR',supplierVatNumber:'300000000000003',vatRate:'15',net:'1950.00',vat:'292.50',total:'2242.50',sourceFile:'al-noor-example',city:'Riyadh',items:[['A4 copy paper · 20 boxes','1,400.00'],['Office stationery set','550.00']]},
+    {supplier:'Desert Print Studio',arabic:'استوديو الطباعة',invoiceNumber:'DPS-00286',date:'2026-08-14',currency:'AED',supplierVatNumber:'100000000000003',vatRate:'5',net:'640.00',vat:'32.00',total:'672.00',sourceFile:'desert-print-example',city:'Dubai',items:[['Business cards · 500 pcs','240.00'],['Brochure printing','400.00']]},
+    {supplier:'مكتبة الصفحات',arabic:'مكتبة الصفحات',invoiceNumber:'PG-00172',date:'2026-08-15',currency:'SAR',supplierVatNumber:'300000000000013',vatRate:'15',net:'800.00',vat:'120.00',total:'920.00',sourceFile:'arabic-stationery-example',city:'Riyadh',items:[['ورق طباعة · Printing paper','500.00'],['أدوات مكتبية · Stationery','300.00']]}
   ];
   let nextID = 1, sampleIndex = 0, currentID = null, filter = 'all', toastTimer;
   const invoices = [];
-  const aiFields = ['supplier','invoiceNumber','date','currency','net','vat','total'];
-  const fieldNames = {supplier:'Supplier',invoiceNumber:'Invoice number',date:'Invoice date',currency:'Currency',net:'Net amount',vat:'Tax amount',total:'Invoice total'};
+  const aiFields = ['supplier','invoiceNumber','date','currency','supplierVatNumber','vatRate','net','vat','total'];
+  const fieldNames = {supplier:'Supplier',invoiceNumber:'Invoice number',date:'Invoice date',currency:'Currency',supplierVatNumber:'Supplier VAT number / TRN',vatRate:'VAT rate (%)',net:'Net amount',vat:'Tax amount',total:'Invoice total'};
   let aiConnection = {configured:false, localServer:false};
   let pendingRemoveID = null;
   const current = () => invoices.find(item => item.id === currentID);
@@ -70,7 +70,7 @@
     $('export-description').textContent = count ? 'One row per invoice. Sample rows are clearly labeled.' : 'Approve an invoice to include it in your export.';
   }
   function sourceHTML(sample) {
-    return `<article class="paper-invoice" aria-label="Fictional sample invoice. Original values are independent of the editable fields."><div class="paper-top"><div class="paper-mark">${sample.invoiceNumber.startsWith('DPS') ? 'dp.' : 'n.'}</div><span class="paper-arabic" lang="ar" dir="rtl">${escape(sample.arabic)}</span></div><h4 class="paper-supplier" dir="auto">${escape(sample.supplier)}</h4><p class="paper-address">${escape(sample.city)}<br>Fictional supplier · sample document</p><div class="paper-title">INVOICE</div><div class="paper-meta"><span>${escape(sample.invoiceNumber)}</span><span>${escape(new Date(sample.date + 'T12:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}))}</span></div><table class="paper-table"><thead><tr><th>DESCRIPTION</th><th>${escape(sample.currency)}</th></tr></thead><tbody>${sample.items.map(item => `<tr><td dir="auto">${escape(item[0])}</td><td>${escape(item[1])}</td></tr>`).join('')}</tbody></table><div class="paper-totals"><div class="paper-total-line"><span>Subtotal</span><span>${format(sample.net)}</span></div><div class="paper-total-line"><span>Tax</span><span>${format(sample.vat)}</span></div><div class="paper-total-line paper-grand-total"><span>Total ${escape(sample.currency)}</span><span>${format(sample.total)}</span></div></div><div class="paper-stamp">SAMPLE ONLY · NOT A REAL INVOICE</div></article>`;
+    return `<article class="paper-invoice" aria-label="Fictional sample invoice. Original values are independent of the editable fields."><div class="paper-top"><div class="paper-mark">${sample.invoiceNumber.startsWith('DPS') ? 'dp.' : 'n.'}</div><span class="paper-arabic" lang="ar" dir="rtl">${escape(sample.arabic)}</span></div><h4 class="paper-supplier" dir="auto">${escape(sample.supplier)}</h4><p class="paper-address">${escape(sample.city)}<br>Fictional supplier · sample document<br>VAT number / TRN: ${escape(sample.supplierVatNumber)}</p><div class="paper-title">INVOICE</div><div class="paper-meta"><span>${escape(sample.invoiceNumber)}</span><span>${escape(new Date(sample.date + 'T12:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}))}</span></div><table class="paper-table"><thead><tr><th>DESCRIPTION</th><th>${escape(sample.currency)}</th></tr></thead><tbody>${sample.items.map(item => `<tr><td dir="auto">${escape(item[0])}</td><td>${escape(item[1])}</td></tr>`).join('')}</tbody></table><div class="paper-totals"><div class="paper-total-line"><span>Subtotal</span><span>${format(sample.net)}</span></div><div class="paper-total-line"><span>VAT (${escape(sample.vatRate)}%)</span><span>${format(sample.vat)}</span></div><div class="paper-total-line paper-grand-total"><span>Total ${escape(sample.currency)}</span><span>${format(sample.total)}</span></div></div><div class="paper-stamp">SAMPLE ONLY · NOT A REAL INVOICE</div></article>`;
   }
   function renderSource(item) {
     const preview = $('source-preview');
@@ -124,6 +124,8 @@
     if (!item.invoiceNumber.trim()) issues.push(['invoiceNumber','Enter the invoice number.']);
     if (!validDate(item.date)) issues.push(['date','Enter a valid invoice date (1900 or later).']);
     if (!['SAR','AED','USD','EUR','GBP'].includes(item.currency)) issues.push(['currency','Choose the invoice currency.']);
+    const rate=String(item.vatRate ?? '').trim();
+    if (rate && (!/^\d+(?:\.\d+)?$/.test(rate) || !Number.isFinite(Number(rate)) || Number(rate)>100)) issues.push(['vatRate','Enter a VAT rate from 0 to 100, or leave it empty when unclear or mixed.']);
     for (const [key, label] of [['net','net amount'],['vat','tax amount'],['total','invoice total']]) {
       const value = cents(item[key]);
       if (value === null) issues.push([key,`Enter a non-negative ${label} with no more than two decimal places.`]);
@@ -167,7 +169,7 @@
     feedback.innerHTML=messages.length?'<ul>'+messages.map(message=>'<li>'+escape(message)+'</li>').join('')+'</ul>':'';
     $('ai-insights').hidden=!result;
     if(!result) {$('ai-insight-body').innerHTML='';return;}
-    const candidates=aiFields.filter(field=>result[field]!==null && String(result[field])!==String(item[field]));
+    const candidates=aiFields.filter(field=>result[field]!=null && String(result[field])!==String(item[field]));
     const warningList=result.field_warnings.length?'<h4>Fields to double-check</h4><ul>'+result.field_warnings.map(w=>'<li><strong>'+escape(fieldNames[w.field]||w.field)+':</strong> '+escape(w.message)+'</li>').join('')+'</ul>':'';
     const suggestions=candidates.length&&result.is_invoice?'<h4>Suggestions kept separate from your edits</h4><div class="ai-candidates">'+candidates.map(field=>`<div><span><strong>${escape(fieldNames[field])}</strong><span dir="auto">${escape(result[field])}</span></span><button type="button" class="button secondary" data-apply-ai="${field}" ${reading?'disabled':''}>Use value</button></div>`).join('')+'</div>':'';
     const lines=result.line_items.length?'<h4>Extracted line items</h4><p class="ai-line-note">Reference only. Excel exports the invoice totals, not these individual lines.</p><div class="ai-line-items">'+result.line_items.map(line=>`<div><strong dir="auto">${escape(line.description)}</strong><p>Qty: ${escape(line.quantity??'Not clear')} · Unit price: ${escape(line.unit_price??'Not clear')} · Net: ${escape(line.net_amount??'Not clear')}</p></div>`).join('')+'</div>':'<p>No individual line items were clearly extracted.</p>';
@@ -242,7 +244,7 @@
       } else {
         let count=0;
         if((item.revision||0)===revision) {
-          aiFields.forEach(field=>{if(!String(item[field]??'').trim() && result[field]!==null){item[field]=result[field];count++;}});
+          aiFields.forEach(field=>{if(!String(item[field]??'').trim() && result[field]!=null){item[field]=result[field];count++;}});
         }
         // A later OCR read must not erase earlier AI assistance from provenance.
         item.mode=item.mode==='ai' || item.reading.provider!=='ocr'?'ai':'ocr';item.aiStatus='done';
@@ -340,7 +342,7 @@
         if(invoices.some(i=>i.fileKey===`${file.name}:${file.size}:${file.lastModified}`)){skipped.push(file.name+': already in the inbox.');continue;}
         const type=await detectFileType(file);
         if(!type){skipped.push(file.name+': choose a valid PDF, JPG, PNG, or WebP file.');continue;}
-        const item={id:'RAS-'+String(nextID++).padStart(4,'0'),supplier:'',invoiceNumber:'',date:'',currency:'',net:'',vat:'',total:'',notes:'',mode:'manual',approved:false,confirmed:false,reviewedAt:'',revision:0,file,sourceFile:file.name,fileType:type,fileKey:`${file.name}:${file.size}:${file.lastModified}`,url:URL.createObjectURL(file)};
+        const item={id:'RAS-'+String(nextID++).padStart(4,'0'),supplier:'',invoiceNumber:'',date:'',currency:'',supplierVatNumber:'',vatRate:'',net:'',vat:'',total:'',notes:'',mode:'manual',approved:false,confirmed:false,reviewedAt:'',revision:0,file,sourceFile:file.name,fileType:type,fileKey:`${file.name}:${file.size}:${file.lastModified}`,url:URL.createObjectURL(file)};
         invoices.push(item);currentID=item.id;added++;
       }
       if(added){filter='all';render();tell(`${added} file${added===1?'':'s'} added. Choose Read invoice or enter details manually.`);}

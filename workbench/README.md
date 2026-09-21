@@ -98,9 +98,13 @@ Rasam first extracts usable embedded text from text-only PDFs. Images and scanne
 
 With the default OCR reader, a conservative parser looks for explicit Arabic/English labels, invoice references, dates, currencies, and amounts. Ambiguous values stay empty. It does not guess a country tax rate or calculate a missing amount just to balance the invoice. This basic parser does not extract line items.
 
+The review form also includes **VAT rate (%)** and **Supplier VAT number / TRN**. The rate is the printed percentage, separate from the VAT amount. Multiple or unclear rates stay empty with a review note; Rasam does not calculate a rate from the totals. The registration number belongs to the issuing supplier, not the customer, and keeps leading zeroes. These two fields are optional when approving a draft.
+
+**Invoice date** means the issue date. Recognizable Gregorian dates are formatted as `YYYY-MM-DD`; due dates and payment dates are separate and are not substituted. Ambiguous day/month order still needs manual review.
+
 Optional Ollama organizes the OCR text locally. Groq sends that text to its cloud service, while the separate OpenAI option sends the original image or PDF. Missing and uncertain fields remain review items. Existing edits are preserved if a read finishes while you are editing; conflicting suggestions have a **Use value** button. Reading or editing a record always requires another human review before approval.
 
-Local AI drafts are checked field by field. Rasam keeps usable fields when another value or review note is malformed, normalizes clear numeric/date formatting, and leaves invalid or ambiguous fields empty with a warning. Main amounts must still match numbers in the recognized source text. Unrecognizable responses and failed AI requests use the disclosed OCR fallback. Expand **Recognized text** beneath the original invoice to inspect what the OCR engine read.
+Local AI drafts are checked field by field. Rasam keeps usable fields when another value or review note is malformed and normalizes clear numeric/date formatting. Clearly labelled OCR values can fill missing date, VAT rate, or supplier VAT number fields, with a note explaining their source. Unresolved or ambiguous values stay empty with a warning. Main amounts must still match numbers in the recognized source text; VAT rates and supplier registration numbers must match labelled tax details. Unrecognizable responses and failed AI requests use the disclosed OCR fallback. Expand **Recognized text** beneath the original invoice to inspect what the OCR engine read.
 
 The local model receives shorter OCR-specific instructions and an 8K, 12K, or 16K context allocation sized for the complete request. Its 7,424-byte OCR input limit is unchanged; text is never silently cut to fit. These changes reduce the request size and memory allocation for short invoices, but speed and extraction accuracy still need checking on your computer.
 
@@ -131,10 +135,10 @@ The server listens only on `127.0.0.1`, with a session token and host/origin che
 | Reading time | Local OCR stops after about 120 seconds; Ollama can take another 180 seconds, or Groq another 90 seconds |
 | Ollama input | At most 7,424 UTF-8 bytes of recognized text; Arabic characters take multiple bytes. Longer documents keep the complete local OCR draft with a warning |
 | Groq input | At most 18,000 extracted characters; longer documents fall back to the local draft |
-| Register | Supplier, invoice number/date, currency, net, tax, total, and optional notes |
+| Register | Supplier, invoice number/date, currency, net, tax, total, plus optional VAT rate, supplier VAT number / TRN, and notes |
 | Currencies | SAR, AED, USD, EUR, GBP; other currencies need manual handling |
 | Amounts | Non-negative, up to two decimal places, with a positive total; credit notes need a future workflow |
-| Excel | One row per approved invoice, typed dates/amounts, and source labels distinguishing OCR, AI, manual, and sample records |
+| Excel | One row per approved invoice, typed dates/amounts and VAT percentages, supplier VAT numbers kept as text, and source labels distinguishing OCR, AI, manual, and sample records |
 
 AI line items, when returned, are reference detail only and are not separate exported entries. Chart-of-accounts coding, ERP posting, tax clearance, saved sessions, and multi-user audit history are not implemented.
 

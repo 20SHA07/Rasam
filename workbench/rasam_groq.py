@@ -7,6 +7,7 @@ from urllib import error, request
 
 from rasam_ai import (EXTRACTION_INSTRUCTIONS, INVOICE_SCHEMA, MAX_RESPONSE_BYTES,
                       ExtractionError, validate_invoice)
+from rasam_text import tax_evidence
 
 DEFAULT_GROQ_MODEL = 'qwen/qwen3.8-27b'
 GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
@@ -81,6 +82,25 @@ def validate_text_result(invoice, text):
             invoice[field] = None
             warning = {'field': field, 'message': 'The AI amount could not be matched to a printed number in the OCR text. Check the original.'}
             invoice['field_warnings'] = (invoice['field_warnings'][:29] + [warning])
+    evidence = tax_evidence(text)
+    for field in ('vatRate', 'supplierVatNumber'):
+        value = invoice[field]
+        if value is None:
+            continue
+        printed, reason = evidence[field]
+        if field == 'vatRate':
+            matches = printed is not None and Decimal(value) == Decimal(printed)
+        else:
+            # Formatting may differ but the complete labeled identifier must
+            # match. The evidence parser excludes buyer IDs and partial tokens.
+            canonical = lambda identifier: re.sub(r'[ ./-]', '', identifier).casefold()
+            matches = printed is not None and canonical(value) == canonical(printed)
+        if not matches:
+            invoice[field] = None
+            message = reason or ('The AI VAT percentage could not be matched to one clearly printed tax rate. Check the original.'
+                                 if field == 'vatRate' else
+                                 'The AI VAT number could not be matched to a clearly identified supplier tax registration number. Check the original.')
+            invoice['field_warnings'] = invoice['field_warnings'][:29] + [{'field': field, 'message': message}]
     return validate_invoice(invoice)
 
 

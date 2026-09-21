@@ -130,8 +130,8 @@
   }
 
   function sheet(invoices) {
-    var headers = ['Invoice date', 'Supplier', 'Invoice number', 'Currency', 'Net', 'VAT', 'Total', 'Data origin', 'Source file', 'Approved at (UTC)', 'Notes', 'Record ID'];
-    var widths = [16, 34, 24, 13, 17, 17, 17, 19, 32, 25, 48, 30];
+    var headers = ['Invoice date', 'Supplier', 'Invoice number', 'Currency', 'Net', 'VAT', 'Total', 'Data origin', 'Source file', 'Approved at (UTC)', 'Notes', 'Record ID', 'VAT rate', 'Supplier VAT number / TRN'];
+    var widths = [16, 34, 24, 13, 17, 17, 17, 19, 32, 25, 48, 30, 16, 29];
     var rows = [
       '<row r="1" ht="32" customHeight="1">' + textCell('A1', 'Rasam | Approved invoices', 1) + '</row>',
       '<row r="2" ht="32" customHeight="1">' + textCell('A2', 'Reviewed invoice data, not a posted journal. Sample rows contain fictional data. Amounts are the approved values entered in Rasam.', 2) + '</row>',
@@ -152,19 +152,21 @@
         textCell('I' + row, invoice.sourceFile),
         dateCell('J' + row, invoice.reviewedAt, true),
         textCell('K' + row, invoice.notes),
-        textCell('L' + row, invoice.id)
+        textCell('L' + row, invoice.id),
+        numberCell('M' + row, invoice.vatRate == null || String(invoice.vatRate).trim() === '' ? null : Number(invoice.vatRate) / 100, 7),
+        textCell('N' + row, invoice.supplierVatNumber)
       ];
       rows.push('<row r="' + row + '">' + cells.join('') + '</row>');
     });
     var lastRow = Math.max(4, invoices.length + 4);
     return XML + '<worksheet xmlns="' + NS + '">' +
-      '<dimension ref="A1:L' + lastRow + '"/>' +
+      '<dimension ref="A1:N' + lastRow + '"/>' +
       '<sheetViews><sheetView workbookViewId="0" showGridLines="0"><pane ySplit="4" topLeftCell="A5" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft" activeCell="A5" sqref="A5"/></sheetView></sheetViews>' +
       '<sheetFormatPr defaultRowHeight="22"/>' +
       '<cols>' + widths.map(function (width, index) { return '<col min="' + (index + 1) + '" max="' + (index + 1) + '" width="' + width + '" customWidth="1"/>'; }).join('') + '</cols>' +
       '<sheetData>' + rows.join('') + '</sheetData>' +
-      '<autoFilter ref="A4:L' + lastRow + '"/>' +
-      '<mergeCells count="2"><mergeCell ref="A1:L1"/><mergeCell ref="A2:L2"/></mergeCells>' +
+      '<autoFilter ref="A4:N' + lastRow + '"/>' +
+      '<mergeCells count="2"><mergeCell ref="A1:N1"/><mergeCell ref="A2:N2"/></mergeCells>' +
       '<pageMargins left="0.3" right="0.3" top="0.5" bottom="0.5" header="0.2" footer="0.2"/>' +
       '<pageSetup orientation="landscape" paperSize="9"/>' +
       '</worksheet>';
@@ -189,7 +191,7 @@
         '<fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF175C43"/><bgColor indexed="64"/></patternFill></fill></fills>' +
         '<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left/><right/><top/><bottom style="hair"><color rgb="FFDBE7E0"/></bottom><diagonal/></border></borders>' +
         '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
-        '<cellXfs count="7">' +
+        '<cellXfs count="8">' +
         '<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>' +
         '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="center"/></xf>' +
         '<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>' +
@@ -197,6 +199,7 @@
         '<xf numFmtId="164" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1"><alignment vertical="top"/></xf>' +
         '<xf numFmtId="165" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1"><alignment vertical="top"/></xf>' +
         '<xf numFmtId="166" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1"><alignment vertical="top"/></xf>' +
+        '<xf numFmtId="10" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1"><alignment vertical="top"/></xf>' +
         '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>' },
       { name: 'xl/worksheets/sheet1.xml', content: sheet(invoices) }
     ]);

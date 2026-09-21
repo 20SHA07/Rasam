@@ -10,9 +10,9 @@ from decimal import Decimal, InvalidOperation
 import math
 import re
 
-from rasam_ai import CURRENCIES, DECIMAL_PATTERN, FIELD_NAMES, ExtractionError
+from rasam_ai import CURRENCIES, DECIMAL_PATTERN, FIELD_NAMES, ExtractionError, validate_invoice
 from rasam_groq import validate_text_result
-from rasam_text import _issue_date, _number
+from rasam_text import _issue_date, _number, _tax_identifier, draft_from_text
 
 _KEYS = set(FIELD_NAMES) | {'is_invoice', 'warnings', 'field_warnings', 'line_items'}
 _LINE_KEYS = {'description', 'quantity', 'unit_price', 'net_amount'}
@@ -78,6 +78,23 @@ def _main_value(field, value):
         return None
     if field in ('net', 'vat', 'total'):
         return _amount(value)
+    if field == 'vatRate':
+        if isinstance(value, str):
+            value = value.strip().translate(_DIGITS)
+            value = re.sub(r'\s*[%٪]\s*$', '', value).replace('٫', '.')
+            # A comma is decimal formatting only for a plain percentage, never
+            # a thousands separator or a mixed list of tax rates.
+            if re.fullmatch(r'[0-9]+,[0-9]{1,2}', value):
+                value = value.replace(',', '.')
+            if not DECIMAL_PATTERN.fullmatch(value):
+                return None
+        value = _amount(value)
+        return value if value is not None and 0 <= Decimal(value) <= 100 else None
+    if field == 'supplierVatNumber':
+        if not isinstance(value, str):
+            return None
+        value, _warning = _tax_identifier(value)
+        return value
     value = _text(value, 1000)
     if value is None:
         return None
@@ -177,12 +194,39 @@ def normalize_local_result(invoice, text):
             result[field] = None
         clean_items = []
         changes.append('The local AI did not identify one invoice. Fields were left empty; check the file before continuing.')
+    partial_note = 'Some local AI fields were left empty. Valid draft fields were kept; review every value against the original.'
     if own_fields:
-        changes.append('Some local AI fields were left empty. Valid draft fields were kept; review every value against the original.')
+        changes.append(partial_note)
 
     # Preserve the adapter's notices when a model fills the entire warning budget.
     result['warnings'] = clean_warnings[:30 - len(changes)] + changes
-    # Reserve three notes for the final main-amount grounding check too.
-    result['field_warnings'] = clean_fields[:27 - len(own_fields)] + own_fields
+    # Reserve five notes for amount, percentage and tax identifier grounding.
+    result['field_warnings'] = clean_fields[:25 - len(own_fields)] + own_fields
     result['line_items'] = clean_items
-    return validate_text_result(result, text)
+    result = validate_text_result(result, text)
+
+    # A small local model can miss a clear label even after OCR read it. Recover
+    # only these supported fields, only from a parser-confirmed single invoice,
+    # and never replace a usable AI field or infer a missing date/rate/number.
+    fields = ('date', 'vatRate', 'supplierVatNumber')
+    if result['is_invoice'] and any(result[field] is None for field in fields):
+        source = draft_from_text(text)
+        filled = []
+        if source['is_invoice']:
+            for field in fields:
+                if result[field] is None and source[field] is not None:
+                    result[field] = source[field]
+                    filled.append(field)
+        if filled:
+            # Notes about the model's discarded suggestion no longer describe
+            # the copied value. Its source and need for review are explicit.
+            result['field_warnings'] = [note for note in result['field_warnings']
+                                        if note['field'] not in filled]
+            if all(result[note['field']] is not None for note in own_fields):
+                result['warnings'] = [note for note in result['warnings'] if note != partial_note]
+            labels = {'date': 'invoice date', 'vatRate': 'VAT percentage',
+                      'supplierVatNumber': 'supplier VAT number'}
+            note = ('Filled ' + ', '.join(labels[field] for field in filled)
+                    + ' from labeled OCR text; review these fields against the original.')
+            result['warnings'] = result['warnings'][:29] + [note]
+    return validate_invoice(result)

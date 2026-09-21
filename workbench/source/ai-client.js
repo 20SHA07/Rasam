@@ -60,11 +60,14 @@
       }, 360000);
       const item=data.invoice;
       if (!item || typeof item.is_invoice !== 'boolean' || !Array.isArray(item.warnings) || !Array.isArray(item.field_warnings) || !Array.isArray(item.line_items)) throw new Error('The reader returned an unreadable result. Your existing details were kept.');
-      for(const field of ['supplier','invoiceNumber','date','currency','net','vat','total']) {
+      for(const field of ['supplier','invoiceNumber','date','currency','supplierVatNumber','vatRate','net','vat','total']) {
         if(item[field] !== null && typeof item[field] !== 'string') throw new Error('The reader returned an invalid field. Your existing details were kept.');
       }
+      if (item.vatRate !== null && (!/^\d+(?:\.\d+)?$/.test(item.vatRate) || !Number.isFinite(Number(item.vatRate)) || Number(item.vatRate)>100)) {
+        throw new Error('The reader returned an invalid VAT rate. Your existing details were kept.');
+      }
       if (item.warnings.some(value => typeof value !== 'string') ||
-          item.field_warnings.some(value => !value || !['supplier','invoiceNumber','date','currency','net','vat','total'].includes(value.field) || typeof value.message !== 'string') ||
+          item.field_warnings.some(value => !value || !['supplier','invoiceNumber','date','currency','supplierVatNumber','vatRate','net','vat','total'].includes(value.field) || typeof value.message !== 'string') ||
           item.line_items.some(value => !value || typeof value.description !== 'string' || ['quantity','unit_price','net_amount'].some(field => value[field] !== null && typeof value[field] !== 'string'))) {
         throw new Error('The reader returned unreadable review notes. Your existing details were kept.');
       }

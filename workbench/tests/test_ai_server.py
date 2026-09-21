@@ -24,6 +24,7 @@ def invoice_fixture():
     return {
         'supplier': 'شركة النور', 'invoiceNumber': '000482', 'date': '2026-09-21',
         'currency': 'SAR', 'net': '100.00', 'vat': '15.00', 'total': '115.00',
+        'vatRate': None, 'supplierVatNumber': None,
         'is_invoice': True, 'warnings': [], 'field_warnings': [],
         'line_items': [{'description': 'Paper / ورق', 'quantity': '2',
                         'unit_price': '50.00', 'net_amount': '100.00'}],
@@ -115,6 +116,8 @@ class AIContractTests(unittest.TestCase):
         for field, bad_value in (
                 ('net', 'NaN'), ('net', 'Infinity'), ('net', '1e3'), ('net', 100),
                 ('net', '1,000.00'), ('date', '2026-02-30'), ('date', '21/09/2026'),
+                ('vatRate', '5%'), ('vatRate', 5), ('vatRate', '-1'), ('vatRate', '100.01'),
+                ('supplierVatNumber', 123456), ('supplierVatNumber', 'no identifier'),
                 ('currency', 'KWD'), ('supplier', ''), ('is_invoice', 1),
                 ('line_items', [{'description': 'x', 'quantity': 'NaN', 'unit_price': None, 'net_amount': None}]),
                 ('field_warnings', [{'field': 'unknown', 'message': 'x'}])):
@@ -124,6 +127,16 @@ class AIContractTests(unittest.TestCase):
                 with self.assertRaises(ExtractionError) as caught:
                     validate_invoice(fixture)
                 self.assertEqual(caught.exception.code, 'invalid_response')
+
+    def test_tax_rate_is_percentage_points_and_registration_is_a_string(self):
+        example = invoice_fixture()
+        example.update(vatRate='5.125', supplierVatNumber='001234567890001')
+        result = parse_response(response_fixture(example))
+        self.assertEqual(result['vatRate'], '5.125')
+        self.assertEqual(result['supplierVatNumber'], '001234567890001')
+        for rate in ('0', '100'):
+            example['vatRate'] = rate
+            self.assertEqual(validate_invoice(example)['vatRate'], rate)
 
     def test_non_invoice_and_multiple_invoice_result_stays_empty(self):
         example = {name: None for name in FIELD_NAMES}

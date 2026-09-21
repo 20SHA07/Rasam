@@ -25,7 +25,7 @@ _UNSUPPORTED_CURRENCY = re.compile(r'\b(?:KWD|BHD|OMR|QAR|INR|PKR|EGP|JPY|CNY)\b
 _LABELS = {
     'supplier': r'(?:supplier(?:\s+name)?|seller(?:\s+name)?|vendor(?:\s+name)?|from|اسم\s+المورد|المورد|اسم\s+البائع|البائع|من)',
     'invoiceNumber': r'(?:invoice\s*(?:number|no\.?|#)|(?:رقم\s+(?:ال)?فاتورة))',
-    'date': r'(?:invoice\s+date|issue\s+date|date\s+of\s+issue|date|تاريخ\s+(?:إصدار\s+|اصدار\s+)?(?:ال)?فاتورة|تاريخ\s+الإصدار|تاريخ\s+الاصدار|التاريخ)',
+    'date': r'(?:invoice\s+(?:issue\s+)?date|issue\s+date|issued\s+(?:date|on)|date\s+(?:of\s+(?:issue|invoice)|issued)|date(?:\s*(?:&|and|/)\s*time)?|تاريخ\s+(?:إصدار\s+|اصدار\s+)?(?:ال)?فاتورة|تاريخ\s+(?:ووقت\s+)?(?:الإصدار|الاصدار)|التاريخ)',
     'net': r'(?:net(?:\s+(?:amount|total))?(?:\s+(?:excluding|excl\.?)\s+(?:VAT|tax))?|sub\s*total(?:\s+(?:excluding|excl\.?)\s+(?:VAT|tax))?|total\s+(?:excluding|excl\.?)\s+(?:VAT|tax)|taxable\s+amount|الإجمالي\s+قبل\s+الضريبة|الاجمالي\s+قبل\s+الضريبة|إجمالي\s+بدون\s+الضريبة|اجمالي\s+بدون\s+الضريبة|المجموع\s+الفرعي|صافي\s+المبلغ)',
     'vat': r'(?:total\s+(?:VAT|tax)(?:\s+amount)?|VAT(?:\s+amount)?|tax\s+amount|ضريبة\s+القيمة\s+المضافة|مبلغ\s+(?:ضريبة\s+القيمة\s+المضافة|الضريبة)|إجمالي\s+الضريبة|اجمالي\s+الضريبة)',
     'total': r'(?:grand\s+total|invoice\s+total|total\s+(?:including|incl\.?)\s+(?:VAT|tax)|total\s+amount(?:\s+including\s+(?:VAT|tax))?|total|الإجمالي\s+شامل\s+الضريبة|الاجمالي\s+شامل\s+الضريبة|إجمالي\s+الفاتورة|اجمالي\s+الفاتورة|المجموع\s+الكلي|الإجمالي\s+النهائي|الاجمالي\s+النهائي|الإجمالي|الاجمالي)',
@@ -50,14 +50,53 @@ def _normalize(text):
 def _label_value(line, field):
     label = _LABELS[field]
     if field == 'vat':
-        label += r'(?:\s*\(?\s*[0-9]+(?:[.,٫][0-9]+)?\s*[%٪]\s*\)?)?'
+        # Registration identifiers and percentage-only rows are not VAT amounts.
+        if re.match(r'\s*(?:VAT\s*(?:rate|no\.?|number|reg(?:istration)?|TRN|ID)|tax\s*(?:rate|registration|ID)|نسبة\s+|(?:ال)?رقم\s+)', line, re.I):
+            return None
+        label += r'(?:\s*[:：@]?\s*\(?\s*[0-9]+(?:[.,٫][0-9]+)?\s*[%٪]\s*\)?)?'
+    elif field == 'date':
+        label = _date_label()
     # A colon or whitespace separates a label from a value. Never consume a
     # minus sign as punctuation: a credit amount must keep its printed sign.
     separator = r'(?:\s*[:：]\s*|\s+)'
     if field == 'invoiceNumber':
         separator = r'(?:\s*[:：]\s*|\s+|(?<=[#\.]))'
     match = re.fullmatch(r'\s*' + label + separator + r'(.+?)\s*', line, re.I)
-    return match.group(1).strip() if match else None
+    value = match.group(1).strip() if match else None
+    if field == 'supplier' and value and re.match(_TAX_LABEL, value, re.I):
+        return None
+    if field == 'vat' and value and re.fullmatch(r'[0-9]+(?:[.,٫][0-9]+)?\s*[%٪]', value):
+        return None
+    return value
+
+
+def _date_label():
+    label = _LABELS['date']
+    # English/Arabic labels often share one OCR line.
+    return label + r'(?:\s*[/|]\s*' + label + r')?(?:\s*\((?:DD/MM/YYYY|MM/DD/YYYY|YYYY/MM/DD)\))?'
+
+
+def _date_value(line, following):
+    value = None
+    if re.fullmatch(r'\s*' + _date_label() + r'\s*[:：]?\s*', line, re.I):
+        for next_line in following[:2]:
+            if re.fullmatch(r'\s*' + _date_label() + r'\s*[:：]?\s*', next_line, re.I):
+                continue
+            value = next_line
+            break
+    else:
+        value = _label_value(line, 'date')
+    if value is None:
+        return None
+    # An explicit printed format resolves day/month order; region does not.
+    hint = re.search(r'\((DD/MM/YYYY|MM/DD/YYYY|YYYY/MM/DD)\)', line, re.I)
+    if hint:
+        numeric = re.fullmatch(r'([0-9]{1,4})([-/.])([0-9]{1,2})\2([0-9]{1,4})', _without_time(value))
+        if numeric:
+            parts = dict(zip(hint[1].upper().split('/'), (numeric[1], numeric[3], numeric[4])))
+            if len(parts['YYYY']) == 4:
+                value = parts['YYYY'] + '-' + parts['MM'].zfill(2) + '-' + parts['DD'].zfill(2)
+    return _issue_date(value)
 
 
 def _number(value):
@@ -115,16 +154,22 @@ def _number(value):
     return format(number, 'f'), None
 
 
+def _without_time(value):
+    return re.sub(r'(?:T|\s+)(?:[01]?[0-9]|2[0-3]):[0-5][0-9](?::[0-5][0-9](?:\.[0-9]+)?)?(?:\s*[AP]M)?(?:\s*(?:Z|UTC|GMT|[+-][0-9]{2}:?[0-9]{2}))?$', '', value, flags=re.I)
+
+
 def _issue_date(value):
     value = _normalize(value).strip()
     if re.search(r'هجري|هجريه|hijri|(?:\s|[0-9])هـ?\s*$', value, re.I):
         return None, 'The date may be Hijri; enter the Gregorian issue date after review.'
+    # Keep the printed local calendar date, without timezone conversion.
+    value = _without_time(value)
     year = month = day = None
-    match = re.fullmatch(r'([0-9]{4})([-/])([0-9]{1,2})\2([0-9]{1,2})', value)
+    match = re.fullmatch(r'([0-9]{4})([-/.])([0-9]{1,2})\2([0-9]{1,2})', value)
     if match:
         year, month, day = int(match[1]), int(match[3]), int(match[4])
     else:
-        match = re.fullmatch(r'([0-9]{1,2})([-/])([0-9]{1,2})\2([0-9]{4})', value)
+        match = re.fullmatch(r'([0-9]{1,2})([-/.])([0-9]{1,2})\2([0-9]{4})', value)
         if match:
             first, second, year = int(match[1]), int(match[3]), int(match[4])
             if first <= 12 and second <= 12 and first != second:
@@ -134,9 +179,9 @@ def _issue_date(value):
             else:
                 month, day = first, second
         else:
-            cleaned = re.sub(r'[,،]', ' ', value.casefold())
+            cleaned = re.sub(r'[,،-]', ' ', value.casefold())
             parts = cleaned.split()
-            if len(parts) == 3 and parts[2].isdigit():
+            if len(parts) == 3 and re.fullmatch(r'[0-9]{4}', parts[2]):
                 year = int(parts[2])
                 if parts[0].isdigit() and parts[1].rstrip('.') in _MONTHS:
                     day, month = int(parts[0]), _MONTHS[parts[1].rstrip('.')]
@@ -148,6 +193,109 @@ def _issue_date(value):
         return date(year, month, day).isoformat(), None
     except ValueError:
         return None, 'The printed issue date is invalid or was misread.'
+
+
+_TAX_LABEL = r'(?:VAT\s*(?:(?:registration|reg\.?)\s*)?(?:number|no\.?|#|ID)|tax\s*(?:(?:registration|reg\.?)\s*)?(?:number|no\.?|#|ID)|TRN|(?:ال)?رقم\s+(?:التسجيل\s+(?:في\s+ضريبة\s+القيمة\s+المضافة|الضريبي)|ضريبة\s+القيمة\s+المضافة|الضريبي)|الرقم\s+الضريبي)'
+_SELLER_LABEL = r'(?:supplier|seller|vendor|المورد|البائع)'
+_BUYER_LABEL = r'(?:customer|buyer|client|bill\s+to|ship\s+to|العميل|المشتري|بيانات\s+العميل|بيانات\s+المشتري)'
+_TAX_RATE_LABEL = r'(?:(?:total\s+)?VAT(?:\s+(?:rate|amount))?|tax\s+(?:rate|amount)|(?:نسبة\s+)?(?:ضريبة\s+القيمة\s+المضافة|الضريبة))'
+
+
+def _tax_identifier(value):
+    """Copy a printed identifier, preserving leading zeroes and separators."""
+    if not isinstance(value, str):
+        return None, 'The supplier VAT/TRN must be copied as an identifier from the source.'
+    value = _normalize(value).strip()
+    if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9 ./-]{0,99}', value) or not re.search(r'[0-9]', value):
+        return None, 'No clear supplier VAT/TRN identifier was found beside the label.'
+    if re.search(r'\s', value):
+        # OCR columns can put two different identifiers on the same row.
+        return None, 'The supplier VAT/TRN contains separated groups; confirm the complete identifier from the source.'
+    return value, None
+
+
+def tax_evidence(text):
+    """Return one explicit VAT rate and seller registration, plus ambiguity.
+
+    Shared by OCR and local AI grounding. No rate is inferred from money or
+    country. Generic registration labels are accepted only before buyer details
+    or in an explicit seller block. Buyer context persists until a seller block.
+    """
+    lines = [_normalize(line).strip() for line in text.splitlines() if line.strip()]
+    rates, identifiers = [], []
+    context = 'header'
+    for index, line in enumerate(lines):
+        explicit_seller = re.match(r'^' + _SELLER_LABEL + r"(?:['’]s)?\s+" + _TAX_LABEL, line, re.I)
+        explicit_buyer = re.match(r'^' + _BUYER_LABEL + r"(?:['’]s)?\s+" + _TAX_LABEL, line, re.I)
+        # English and Arabic document blocks include named headings and bare labels.
+        if re.match(r'^' + _BUYER_LABEL + r'(?:\s|[:：]|$)', line, re.I):
+            context = 'buyer'
+        elif re.match(r'^(?:بيانات\s+)?' + _SELLER_LABEL + r'(?:\s|[:：]|$)', line, re.I):
+            context = 'seller'
+        id_line = line
+        if explicit_seller:
+            id_line = re.sub(r'^' + _SELLER_LABEL + r"(?:['’]s)?\s+", '', line, count=1, flags=re.I)
+        # Arabic commonly places seller/buyer qualification after the tax label.
+        arabic_seller = re.match(r'^(' + _TAX_LABEL + r')\s+(?:للمورد|للبائع)\s*[:：]?', line, re.I)
+        arabic_buyer = re.match(r'^' + _TAX_LABEL + r'\s+(?:للعميل|للمشتري)', line, re.I)
+        if arabic_seller:
+            explicit_seller = arabic_seller
+            id_line = arabic_seller[1] + ': ' + line[arabic_seller.end():].strip()
+        if arabic_buyer:
+            explicit_buyer = arabic_buyer
+        allowed_identifier = bool(explicit_seller) or (context in ('header', 'seller') and not explicit_buyer)
+        if allowed_identifier:
+            # Repeated bilingual labels may precede a single printed identifier.
+            labels = _TAX_LABEL + r'(?:\s*[/|]\s*' + _TAX_LABEL + r')?'
+            matched = re.fullmatch(labels + r'\s*[:：#]?\s+(.+)|' + labels + r'\s*[:：#]\s*(.+)', id_line, re.I)
+            if matched:
+                identifiers.append(_tax_identifier(matched[1] or matched[2]))
+            elif re.fullmatch(labels + r'\s*[:：]?\s*', id_line, re.I) and index + 1 < len(lines):
+                identifiers.append(_tax_identifier(lines[index + 1]))
+
+        # A printed percent must immediately follow its tax label. A discount
+        # elsewhere on the same OCR row must not become a VAT percentage.
+        rate_line = line
+        if re.fullmatch(_TAX_RATE_LABEL + r'\s*[:：]?\s*', line, re.I) and index + 1 < len(lines):
+            rate_line += ' ' + lines[index + 1]
+        header = re.fullmatch(_TAX_RATE_LABEL + r'\s*\(?\s*[%٪]\s*\)?\s*[:：]?\s*([0-9]+(?:[.,٫][0-9]+)?)?', line, re.I)
+        if header:
+            value = header[1] or (lines[index + 1] if index + 1 < len(lines) else '')
+            if re.fullmatch(r'[0-9]+(?:[.,٫][0-9]+)?', value):
+                rate_line = 'VAT ' + value + '%'
+        printed_rates = []
+        for label_match in re.finditer(r'(?<!\w)' + _TAX_RATE_LABEL + r'(?!\w)', rate_line, re.I):
+            suffix = rate_line[label_match.end():]
+            immediate = re.match(r'\s*(?:[:：@=]\s*)?\(?\s*(-?[0-9]+(?:[.,٫][0-9]+)?)\s*[%٪]', suffix)
+            if immediate:
+                printed_rates.append(immediate[1])
+                # Multiple percentages on a tax-only row can be a tax split.
+                if not re.search(r'\bdiscount\b|خصم', suffix, re.I):
+                    printed_rates.extend(re.findall(r'(-?[0-9]+(?:[.,٫][0-9]+)?)\s*[%٪]', suffix[immediate.end():]))
+        for printed in printed_rates:
+            value = printed.replace(',', '.').replace('٫', '.')
+            if ',' in printed and len(printed.split(',')[1]) > 2:
+                rates.append((None, 'The VAT percentage has an ambiguous decimal or grouping separator; confirm it from the source.'))
+            elif len(value) > 100 or not Decimal('0') <= Decimal(value) <= Decimal('100'):
+                rates.append((None, 'The printed VAT percentage is invalid; confirm it from the source.'))
+            else:
+                rates.append((format(Decimal(value), 'f'), None))
+
+    if any(value is not None and Decimal(value) != 0 for value, _ in rates) and re.search(r'\b(?:VAT|tax)\s*[:：-]?\s*exempt\b|\bexempt\s+(?:from\s+)?(?:VAT|tax)\b|\bzero[ -]rated\b|معف(?:ى|اة|ي)\s+من\s+الضريبة', '\n'.join(lines), re.I):
+        rates.append((None, 'Taxed and exempt or zero-rated entries were printed; review the breakdown instead of using one invoice rate.'))
+
+    def unique(candidates, field):
+        invalid = [reason for value, reason in candidates if value is None]
+        if invalid:
+            return None, invalid[0]
+        if not candidates:
+            return None, None
+        values = {Decimal(value) if field == 'vatRate' else re.sub(r'[ ./-]', '', value).casefold() for value, _ in candidates}
+        if len(values) != 1:
+            return None, ('Multiple VAT percentages were printed; review the tax breakdown instead of using one invoice rate.' if field == 'vatRate' else 'Conflicting supplier VAT/TRN identifiers were printed; confirm the seller registration from the source.')
+        return candidates[0][0], None
+
+    return {'vatRate': unique(rates, 'vatRate'), 'supplierVatNumber': unique(identifiers, 'supplierVatNumber')}
 
 
 def _identifier(value):
@@ -204,13 +352,19 @@ def draft_from_text(text, warnings=None):
     original_lines = [_DIRECTION_MARKS.sub('', line).strip() for line in text.splitlines() if line.strip()]
     lines = [_normalize(line) for line in original_lines]
     candidates = {field: [] for field in FIELD_NAMES if field != 'currency'}
-    parsers = {'supplier': _supplier, 'invoiceNumber': _identifier, 'date': _issue_date,
+    parsers = {'supplier': _supplier, 'invoiceNumber': _identifier,
                'net': _number, 'vat': _number, 'total': _number}
-    for original, line in zip(original_lines, lines):
-        for field in candidates:
+    for index, (original, line) in enumerate(zip(original_lines, lines)):
+        for field in parsers:
             value = _label_value(original if field == 'supplier' else line, field)
             if value is not None:
                 candidates[field].append(parsers[field](value))
+        parsed_date = _date_value(line, lines[index + 1:index + 3])
+        if parsed_date is not None:
+            candidates['date'].append(parsed_date)
+    for field, evidence in tax_evidence(text).items():
+        if field in candidates and evidence != (None, None):
+            candidates[field].append(evidence)
     identifiers = {value for value, _ in candidates['invoiceNumber'] if value is not None}
     if len(identifiers) > 1:
         warn('Different invoice numbers were found. This may contain multiple invoices or an unclear correction; split or review the file before extracting one invoice.')
@@ -226,13 +380,13 @@ def draft_from_text(text, warnings=None):
 
     for field, values in candidates.items():
         if not values:
-            field_warn(field, 'No clear ' + {'invoiceNumber': 'invoice number', 'net': 'invoice net amount excluding tax', 'vat': 'printed VAT amount', 'total': 'invoice grand total'}.get(field, field) + ' label and value were found; enter it from the source.')
+            field_warn(field, 'No clear ' + {'invoiceNumber': 'invoice number', 'net': 'invoice net amount excluding tax', 'vat': 'printed VAT amount', 'vatRate': 'printed VAT percentage', 'supplierVatNumber': 'supplier VAT/TRN', 'total': 'invoice grand total'}.get(field, field) + ' label and value were found; enter it from the source.')
             continue
         invalid = [reason for value, reason in values if value is None]
         if invalid:
             field_warn(field, invalid[0])
             continue
-        if field in ('net', 'vat', 'total'):
+        if field in ('net', 'vat', 'total', 'vatRate'):
             unique = {Decimal(value) for value, _ in values}
         else:
             unique = {re.sub(r'\s+', ' ', value).casefold() for value, _ in values}

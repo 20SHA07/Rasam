@@ -39,6 +39,7 @@ def invoice_fixture():
     return {'supplier': 'Al Noor Stationery', 'invoiceNumber': 'R-00042',
             'date': '2026-09-21', 'currency': 'SAR', 'net': '100.00',
             'vat': '15.00', 'total': '115.00', 'is_invoice': True,
+            'vatRate': None, 'supplierVatNumber': None,
             'warnings': [], 'field_warnings': [], 'line_items': []}
 
 
@@ -162,7 +163,9 @@ class LocalAIServerTests(unittest.TestCase):
 
     def test_partial_local_model_draft_keeps_usable_fields_through_http(self):
         draft = invoice_fixture()
-        draft.update(date='not a date', net=100, vat='15%', warnings=None)
+        draft.update(date='21 September 2026', net=100, vat='15%', warnings=None,
+                     vatRate='١٥٪', supplierVatNumber='٠٠١٢٣٤٥٦٧٨٩٠٠٠١')
+        source = OCR_TEXT + '\nDue date: 2026-10-21\nVAT rate: 15%\nSupplier TRN: 001234567890001'
         calls = []
 
         def local_reply(request, timeout):
@@ -180,19 +183,24 @@ class LocalAIServerTests(unittest.TestCase):
                                                         'content': json.dumps(draft)}}
             return io.BytesIO(json.dumps(payload).encode())
 
-        with self.server(extractor=OllamaTextExtractor(opener=local_reply)) as (call, _):
+        def read(upload):
+            return {'text': source, 'engine': 'fixture-ocr', 'page_count': 1, 'warnings': []}
+
+        with self.server(extractor=OllamaTextExtractor(opener=local_reply), ocr_reader=read) as (call, _):
             code, result = call('POST', '/api/extract', upload_fixture())
         self.assertEqual(code, 200, result)
         self.assertEqual(result['reading']['provider'], 'ollama')
-        self.assertEqual(result['reading']['source_text'], OCR_TEXT)
+        self.assertEqual(result['reading']['source_text'], source)
         invoice = result['invoice']
         self.assertEqual(invoice['supplier'], 'Al Noor Stationery')
         self.assertEqual(invoice['invoiceNumber'], 'R-00042')
         self.assertEqual(Decimal(invoice['net']), Decimal('100'))
         self.assertEqual(invoice['total'], '115.00')
-        self.assertIsNone(invoice['date'])
+        self.assertEqual(invoice['date'], '2026-09-21')
+        self.assertEqual(invoice['vatRate'], '15')
+        self.assertEqual(invoice['supplierVatNumber'], '001234567890001')
         self.assertIsNone(invoice['vat'])
-        self.assertTrue({'date', 'vat'}.issubset({w['field'] for w in invoice['field_warnings']}))
+        self.assertIn('vat', {w['field'] for w in invoice['field_warnings']})
         self.assertNotIn('AI assistance was not applied', ' '.join(invoice['warnings']))
         self.assertEqual(calls, ['http://127.0.0.1:11434/api/show',
                                  'http://127.0.0.1:11434/api/chat'])

@@ -17,7 +17,8 @@ MAX_JSON_BYTES = 29 * 1024 * 1024
 MAX_RESPONSE_BYTES = 2 * 1024 * 1024
 DEFAULT_MODEL = 'gpt-4.1-mini'
 API_URL = 'https://api.openai.com/v1/responses'
-FIELD_NAMES = ('supplier', 'invoiceNumber', 'date', 'currency', 'net', 'vat', 'total')
+FIELD_NAMES = ('supplier', 'invoiceNumber', 'date', 'currency', 'net', 'vat', 'total',
+               'vatRate', 'supplierVatNumber')
 CURRENCIES = ('SAR', 'AED', 'USD', 'EUR', 'GBP')
 MIME_TYPES = ('application/pdf', 'image/jpeg', 'image/png', 'image/webp')
 DECIMAL_PATTERN = re.compile(r'^-?(?:0|[1-9][0-9]*)(?:\.[0-9]+)?$')
@@ -78,6 +79,18 @@ Preserve identifiers as strings with leading zeroes; do not strip their punctuat
 date means issue date, not due, delivery, print or payment date. Output a Gregorian
 YYYY-MM-DD date only when unambiguous. Do not guess day/month order, assume a year
 or convert a Hijri date; otherwise return null with a field warning.
+Use invoice/issue date labels, including تاريخ الفاتورة and تاريخ الإصدار;
+never substitute a nearby due date when the issue date is missing.
+
+supplierVatNumber means the issuing seller's printed VAT/tax registration number
+or TRN (الرقم الضريبي), never the buyer/customer's identifier, commercial
+registration, invoice number, bank account or IBAN. Preserve leading zeroes as a
+string and normalize Arabic/Persian digits. If ownership is unclear, return null.
+vatRate is the single explicitly printed invoice-level VAT percentage, expressed
+in percentage points as a plain decimal string: printed 5% becomes "5", not
+"0.05". It is distinct from vat, the monetary tax amount. Never derive the rate
+from amounts, country or currency. Missing, mixed, exempt or unclear rates are
+null with a warning; an explicitly printed 0% is "0". Do not use discount rates.
 
 Normalize Arabic-Indic and Persian digits in numeric fields to ASCII. Interpret
 Arabic decimal separator ٫ and thousands separator ٬, and locale-specific comma
@@ -110,7 +123,7 @@ items. Do not fabricate a description. If more than 50 items exist, include the
 first 50 and warn that line items were truncated. These items are supporting
 review detail, not journal coding. Do not calculate line amounts.
 
-For a non-invoice, return is_invoice=false, null for all seven main fields, empty
+For a non-invoice, return is_invoice=false, null for all main fields, empty
 line_items and a warning explaining the reason. For multiple distinct invoices
 in one file, also return is_invoice=false and all-null fields with a warning to
 split the file. A single invoice continued across pages is one invoice. Never
@@ -211,6 +224,14 @@ def validate_invoice(invoice):
             _malformed()
     for field in ('net', 'vat', 'total'):
         if invoice[field] is not None and not _is_decimal(invoice[field]):
+            _malformed()
+    if invoice['vatRate'] is not None:
+        if not _is_decimal(invoice['vatRate']) or not 0 <= Decimal(invoice['vatRate']) <= 100:
+            _malformed()
+    if invoice['supplierVatNumber'] is not None:
+        value = invoice['supplierVatNumber']
+        if (not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9 ./-]{0,99}', value)
+                or not re.search(r'[0-9]', value)):
             _malformed()
     if (not isinstance(invoice['warnings'], list) or len(invoice['warnings']) > 30
             or any(not isinstance(warning, str) or not warning.strip() or len(warning) > 1000

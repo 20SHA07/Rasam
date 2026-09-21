@@ -37,6 +37,7 @@ def invoice_fixture():
     return {'supplier': 'Al Noor Stationery', 'invoiceNumber': 'R-00042',
             'date': '2026-09-21', 'currency': 'SAR', 'net': '100.00',
             'vat': '15.00', 'total': '115.00', 'is_invoice': True,
+            'vatRate': None, 'supplierVatNumber': None,
             'warnings': [], 'field_warnings': [], 'line_items': []}
 
 
@@ -123,6 +124,19 @@ class GroqContractTests(unittest.TestCase):
                 with self.assertRaises(ExtractionError) as caught:
                     self.extractor_for(groq_response(example))(OCR_TEXT)
                 self.assertEqual(caught.exception.code, 'invalid_response')
+
+    def test_text_ai_tax_fields_require_source_evidence_and_seller_identity(self):
+        invoice = invoice_fixture()
+        invoice.update(vatRate='5', supplierVatNumber='001234567890001')
+        source = OCR_TEXT + '\nVAT rate: ٥٪\nSupplier TRN: ٠٠١٢٣٤٥٦٧٨٩٠٠٠١'
+        result = self.extractor_for(groq_response(invoice))(source)
+        self.assertEqual(result['vatRate'], '5')
+        self.assertEqual(result['supplierVatNumber'], '001234567890001')
+        source = OCR_TEXT + '\nDiscount: 5%\nCustomer TRN: 001234567890001'
+        result = self.extractor_for(groq_response(invoice))(source)
+        self.assertIsNone(result['vatRate'])
+        self.assertIsNone(result['supplierVatNumber'])
+        self.assertEqual(result['total'], '115.00')
 
     def test_missing_or_malformed_upstream_structures_fail_safely(self):
         cases = [None, [], {}, {'choices': []}, {'choices': ['unexpected']},

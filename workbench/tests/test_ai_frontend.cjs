@@ -16,7 +16,7 @@ const html = source('index.html');
 const appSource = source('app.js');
 const bridgeSource = source('ai-client.js');
 const exportSource = source('export.js');
-const fieldNames = ['supplier', 'invoiceNumber', 'date', 'currency', 'net', 'vat', 'total'];
+const fieldNames = ['supplier', 'invoiceNumber', 'date', 'currency', 'supplierVatNumber', 'vatRate', 'net', 'vat', 'total'];
 const tests = [];
 const test = (name, run) => tests.push({ name, run });
 const flush = () => new Promise(resolve => setImmediate(resolve));
@@ -28,7 +28,7 @@ function deferred() {
 function reading(overrides = {}) {
   return {
     is_invoice: true, supplier: 'شركة الاختبار', invoiceNumber: 'TEST-001',
-    date: '2026-09-21', currency: 'SAR', net: '100.00', vat: '15.00', total: '115.00',
+    date: '2026-09-21', currency: 'SAR', supplierVatNumber: '001234567890123', vatRate: '15', net: '100.00', vat: '15.00', total: '115.00',
     warnings: [], field_warnings: [], line_items: [], ...overrides
   };
 }
@@ -224,6 +224,90 @@ test('An uploaded file fills empty fields and exports human-reviewed AI provenan
   assert.match(sheet, /supplier-invoice\.png/);
   assert.match(sheet, /<c r="E5"[^>]*><v>100<\/v>/);
   assert.doesNotMatch(sheet, /Al Noor Stationery LLC/, 'Unapproved sample must not export');
+});
+
+test('Invoice date, printed VAT rate, and supplier tax number fill and export with correct Excel types', async () => {
+  const ui=await app({extract:async()=>reading({vatRate:'5',supplierVatNumber:'001234567890123'})});
+  await ui.upload();
+  await ui.read();
+  assert.equal(ui.get('date').value,'2026-09-21');
+  assert.equal(ui.get('vatRate').value,'5');
+  assert.equal(ui.get('supplierVatNumber').value,'001234567890123');
+  assert.equal(ui.get('vat').value,'15.00','A percentage does not recalculate the printed tax amount');
+  assert.equal(ui.get('total').value,'115.00');
+  await ui.approve();
+  await ui.get('export-button').click();
+  const bytes=await ui.downloads[0].blob.arrayBuffer();
+  const sheet=zipEntry(bytes,'xl/worksheets/sheet1.xml');
+  const styles=zipEntry(bytes,'xl/styles.xml');
+  assert.match(sheet,/<c r="A5" s="5"><v>\d+<\/v><\/c>/,'Invoice date remains an Excel date');
+  assert.match(sheet,/<c r="M5" s="7"><v>0\.05<\/v><\/c>/,'5 percent is exported as 0.05');
+  assert.match(styles,/<xf numFmtId="10"[^>]*applyNumberFormat="1"/,'The rate uses Excel percentage formatting');
+  assert.match(sheet,/<c r="N5" t="inlineStr" s="0"><is><t xml:space="preserve">001234567890123<\/t>/,'Tax identifier stays text with leading zeroes');
+  assert.match(sheet,/<dimension ref="A1:N5"/);
+  assert.match(sheet,/<autoFilter ref="A4:N5"/);
+  assert.match(sheet,/Supplier VAT number \/ TRN/);
+});
+
+test('Unclear or mixed VAT rates and missing supplier tax numbers remain optional', async () => {
+  const ui=await app({extract:async()=>reading({vatRate:null,supplierVatNumber:null,field_warnings:[{field:'vatRate',message:'Multiple printed VAT rates; review the invoice.'}]})});
+  await ui.upload();
+  await ui.read();
+  assert.equal(ui.get('vatRate').value,'');
+  assert.equal(ui.get('supplierVatNumber').value,'');
+  assert.match(ui.get('ai-insight-body').textContent,/VAT rate \(%\).*Multiple printed VAT rates/);
+  await ui.approve();
+  assert.equal(ui.get('selected-status').textContent,'Approved');
+  await ui.get('export-button').click();
+  const sheet=zipEntry(await ui.downloads[0].blob.arrayBuffer(),'xl/worksheets/sheet1.xml');
+  assert.match(sheet,/<c r="M5" t="inlineStr" s="7"><is><t xml:space="preserve"><\/t>/,'Missing rate must not become zero percent');
+  assert.match(sheet,/<c r="N5" t="inlineStr" s="0"><is><t xml:space="preserve"><\/t>/);
+});
+
+test('VAT suggestions preserve edited values and applying either requires fresh approval', async () => {
+  const ui=await app();
+  await ui.upload();
+  await ui.fill('vatRate','5');
+  await ui.fill('supplierVatNumber','000222333444555');
+  await ui.read();
+  assert.equal(ui.get('vatRate').value,'5');
+  assert.equal(ui.get('supplierVatNumber').value,'000222333444555');
+  for (const field of ['vatRate','supplierVatNumber']) {
+    await ui.approve();
+    assert.equal(ui.get('selected-status').textContent,'Approved');
+    const candidate=ui.get('ai-insight-body').querySelectorAll('[data-apply-ai]').find(button=>button.dataset.applyAi===field);
+    assert(candidate,'A conflicting tax field remains a separate suggestion');
+    await candidate.click();
+    assert.equal(ui.get(field).value,reading()[field]);
+    assert.equal(ui.get('selected-status').textContent,'Needs review');
+    assert.equal(ui.get('review-confirm').checked,false);
+    assert(ui.get('export-button').disabled);
+  }
+  await ui.approve();
+  await ui.fill('vatRate','7.5');
+  assert.equal(ui.get('selected-status').textContent,'Needs review');
+  await ui.approve();
+  await ui.fill('supplierVatNumber','000999888777666');
+  assert.equal(ui.get('selected-status').textContent,'Needs review');
+});
+
+test('Manual VAT rate accepts decimal percentages from zero to 100 without changing amounts', async () => {
+  const ui=await app();
+  await ui.upload();
+  await ui.fillInvoice();
+  for (const rate of ['-1','100.01','5%','1e1','invalid']) {
+    await ui.fill('vatRate',rate);
+    await ui.approve();
+    assert.match(ui.get('form-errors').textContent,/Enter a VAT rate from 0 to 100/);
+    assert(ui.get('export-button').disabled);
+  }
+  for (const rate of ['0','7.5','100','']) {
+    await ui.fill('vatRate',rate);
+    await ui.approve();
+    assert.equal(ui.get('selected-status').textContent,'Approved',rate);
+    assert.equal(ui.get('vat').value,'15.00');
+    assert.equal(ui.get('total').value,'115.00');
+  }
 });
 
 test('Existing values are preserved and a conflicting suggestion requires explicit use', async () => {
@@ -605,6 +689,19 @@ test('Bridge rejects malformed results before they can reach invoice fields', as
   for (const invoice of [undefined, reading({ net: 100 }), reading({ warnings: null }), reading({ supplier: undefined })]) {
     const client = bridge({ fetch: async () => ({ ok: true, json: async () => ({ invoice }) }) });
     await assert.rejects(() => client.api.extract(file(), 'image/png', 'token'), /unreadable result|invalid field/);
+  }
+});
+
+test('Bridge validates tax fields and accepts their review notes without changing identifiers', async () => {
+  const invoice=reading({field_warnings:[{field:'supplierVatNumber',message:'Check this supplier tax registration number.'},{field:'vatRate',message:'Check the printed percentage.'}]});
+  const client=bridge({fetch:async()=>({ok:true,json:async()=>({invoice})})});
+  const result=await client.api.extract(file(),'image/png','token');
+  assert.equal(result.supplierVatNumber,'001234567890123');
+  assert.equal(result.vatRate,'15');
+  assert.equal(result.field_warnings.length,2);
+  for (const overrides of [{vatRate:15},{vatRate:'101'},{vatRate:'-5'},{vatRate:'5%'},{vatRate:'1e1'},{supplierVatNumber:123456789012345},{supplierVatNumber:undefined}]) {
+    const invalid=bridge({fetch:async()=>({ok:true,json:async()=>({invoice:reading(overrides)})})});
+    await assert.rejects(()=>invalid.api.extract(file(),'image/png','token'),/invalid field|invalid VAT rate/);
   }
 });
 

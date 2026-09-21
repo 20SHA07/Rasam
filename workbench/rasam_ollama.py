@@ -29,9 +29,17 @@ No confidence scores. Preserve Arabic names and descriptions.
 
 supplier = issuing seller, not buyer/bank/software vendor. invoiceNumber = invoice
 ID, not order/tax/payment ID; preserve punctuation and leading zeroes as strings.
-date = issue date only, Gregorian YYYY-MM-DD when unambiguous. Do not guess
-day/month order or year, or convert Hijri dates. currency = explicit SAR/AED/USD/
+date = labeled invoice/issue date only, not due/delivery/payment date; Gregorian
+YYYY-MM-DD when unambiguous. Do not guess day/month order/year or convert Hijri
+dates. currency = explicit SAR/AED/USD/
 EUR/GBP only; bare $ is ambiguous. Other currencies: null and warn with printed code.
+
+supplierVatNumber = seller's printed VAT/tax registration/TRN, never buyer ID,
+commercial registration, invoice or bank number. Keep leading zeroes as a string;
+unclear ownership means null. vatRate = one printed invoice-level VAT percentage
+in percentage points: 5% is "5", not "0.05"; explicit 0% is "0". Missing, mixed,
+exempt or unclear rates mean null. Never use discount rates or derive tax rates
+from amounts, currency or country. vat remains the separate monetary tax amount.
 
 net = printed invoice net excluding tax; vat = printed invoice tax amount, never
 rate; total = printed grand total, not balance/payment/deposit/subtotal. Do not
@@ -46,7 +54,7 @@ Extract up to 50 actual line items in source order: description, quantity,
 unit_price, net_amount. Do not invent descriptions or calculate values; uncertain
 numbers are null. Exclude headings, totals, tax/bank details. Warn if items exceed
 50. Credit notes need a warning and printed signed amounts. Non-invoice or multiple
-distinct invoices: is_invoice=false, all seven fields null, line_items=[], and
+distinct invoices: is_invoice=false, all main fields null, line_items=[], and
 warn to explain/split; never merge invoices. Continued pages can be one invoice.
 At most 30 warnings and 30 field_warnings. Return every key in the JSON schema,
 use [] for empty arrays, and return only JSON:\n'''

@@ -1,5 +1,6 @@
 """Behavior checks for the local OCR draft fallback. No model/API is needed."""
 import pathlib
+from decimal import Decimal
 import sys
 import unittest
 
@@ -18,7 +19,8 @@ class TextDraftTests(unittest.TestCase):
     def test_explicit_english_fields_and_original_supplier(self):
         result = self.draft('Tax Invoice\nSupplier: Al Noor LLC\nInvoice No.: INV-0042\nInvoice Date: 12 August 2026\nSubtotal: SAR 1,950.00\nVAT (15%): SAR 292.50\nGrand Total: SAR 2,242.50\nAmount Due: 100.00')
         self.assertTrue(result['is_invoice'])
-        self.assertEqual([result[field] for field in FIELD_NAMES], ['Al Noor LLC', 'INV-0042', '2026-08-12', 'SAR', '1950.00', '292.50', '2242.50'])
+        self.assertEqual([result[field] for field in ('supplier', 'invoiceNumber', 'date', 'currency', 'net', 'vat', 'total')], ['Al Noor LLC', 'INV-0042', '2026-08-12', 'SAR', '1950.00', '292.50', '2242.50'])
+        self.assertEqual(result['vatRate'], '15')
         self.assertEqual(result['line_items'], [])
 
     def test_arabic_digits_and_labels_preserve_supplier(self):
@@ -138,6 +140,101 @@ class TextDraftTests(unittest.TestCase):
         validate_invoice(result)
         self.assertLessEqual(len(result['warnings']), 30)
         self.assertTrue(all(len(warning) <= 1000 for warning in result['warnings']))
+
+    def test_date_label_on_next_line_bilingual_timestamp_and_dots(self):
+        for label, value in (
+            ('Invoice Date / تاريخ الفاتورة:', '25.08.2026 14:32:01'),
+            ('Issue Date:', '2026-08-25T14:32:01+04:00'),
+            ('Date of Invoice:', '25-Aug-2026'),
+            ('تاريخ الإصدار:', '٢٥ أغسطس ٢٠٢٦'),
+        ):
+            with self.subTest(label=label):
+                result = self.draft('Invoice\n' + label + '\n' + value + '\nDue Date: 2026-09-30')
+                self.assertEqual(result['date'], '2026-08-25')
+
+    def test_date_explicit_printed_format_resolves_order(self):
+        for label, expected in (
+            ('DD/MM/YYYY', '2026-08-09'), ('MM/DD/YYYY', '2026-09-08'),
+        ):
+            with self.subTest(label=label):
+                self.assertEqual(self.draft('Invoice\nInvoice Date (' + label + '): 09/08/2026')['date'], expected)
+        self.assertIsNone(self.draft('Invoice\nInvoice Date: 09.08.2026')['date'])
+        self.assertEqual(self.draft('Invoice\nInvoice Date (DD/MM/YYYY): 05/06/2026 14:30')['date'], '2026-06-05')
+
+    def test_due_payment_and_delivery_dates_not_invoice_date(self):
+        result = self.draft('Invoice\nPayment Date: 2026-08-25\nDelivery Date: 2026-08-24\nDue Date\n2026-09-25')
+        self.assertIsNone(result['date'])
+
+    def test_vat_rate_and_amount_are_separate(self):
+        result = self.draft('Invoice\nVAT Rate: 5%\nVAT Amount: AED 10.00\nTotal: AED 210.00')
+        self.assertEqual(result['vatRate'], '5')
+        self.assertEqual(result['vat'], '10.00')
+        result = self.draft('Invoice\nVAT: 5%\nTotal: AED 210.00')
+        self.assertEqual(result['vatRate'], '5')
+        self.assertIsNone(result['vat'])
+
+    def test_arabic_rate_registration_and_amount(self):
+        result = self.draft('فاتورة ضريبية\nالرقم الضريبي للبائع: ٠٠١٢٣٤٥٦٧٨٩٠٠٠١\nضريبة القيمة المضافة ٥٪: ١٠٫٠٠\nالإجمالي: AED ٢١٠٫٠٠')
+        self.assertEqual(result['supplierVatNumber'], '001234567890001')
+        self.assertEqual(result['vatRate'], '5')
+        self.assertEqual(result['vat'], '10.00')
+
+    def test_explicit_seller_and_buyer_tax_ids(self):
+        result = self.draft('Invoice\nSupplier VAT Number: 001234567890001\nCustomer VAT Number: 009876543210001\nInvoice No: 00007\nVAT Amount: 10.00')
+        self.assertEqual(result['supplierVatNumber'], '001234567890001')
+        self.assertIsNone(result['supplier'])
+        self.assertEqual(result['invoiceNumber'], '00007')
+        self.assertEqual(result['vat'], '10.00')
+
+    def test_generic_registration_in_seller_and_buyer_blocks(self):
+        result = self.draft('Invoice\nSeller: Example LLC\nTRN:\n001234567890001\nBill To Buyer Co\nTRN: 009876543210001')
+        self.assertEqual(result['supplierVatNumber'], '001234567890001')
+        for heading in ('Bill To Buyer Co', 'Customer: Buyer Co', 'بيانات المشتري'):
+            with self.subTest(heading=heading):
+                self.assertIsNone(self.draft('Invoice\n' + heading + '\nTRN: 001234567890001')['supplierVatNumber'])
+
+    def test_header_registration_and_bilingual_label(self):
+        result = self.draft('Invoice\nTRN / الرقم الضريبي: 001234567890001\nCustomer: Buyer Co\nTRN: 009876543210001')
+        self.assertEqual(result['supplierVatNumber'], '001234567890001')
+
+    def test_conflicting_seller_tax_ids_require_review(self):
+        result = self.draft('Invoice\nSeller VAT No: 001234567890001\nSupplier TRN: 009876543210001')
+        self.assertIsNone(result['supplierVatNumber'])
+        self.assertTrue(any(item['field'] == 'supplierVatNumber' and 'Conflicting' in item['message'] for item in result['field_warnings']))
+
+    def test_vat_number_not_amount_or_rate_and_other_ids_ignored(self):
+        result = self.draft('Invoice\nVAT Number: 001234567890001\nCR Number: 00987654321\nBank Account: 001111111\nInvoice No: 00007')
+        self.assertEqual(result['supplierVatNumber'], '001234567890001')
+        self.assertIsNone(result['vat'])
+        self.assertIsNone(result['vatRate'])
+
+    def test_rates_never_computed_from_amounts_or_country(self):
+        result = self.draft('Invoice\nSupplier: Dubai LLC\nNet: AED 100.00\nVAT: 5.00\nTotal: AED 105.00')
+        self.assertIsNone(result['vatRate'])
+        self.assertEqual(result['vat'], '5.00')
+
+    def test_multiple_or_mixed_exempt_rates_are_not_collapsed(self):
+        for rates in ('VAT 5%: 10.00\nVAT 15%: 15.00', 'VAT 5%: 10.00\nTax exempt', 'VAT 5%: 10.00\nZero-rated goods'):
+            with self.subTest(rates=rates):
+                result = self.draft('Invoice\n' + rates)
+                self.assertIsNone(result['vatRate'])
+                self.assertTrue(any(item['field'] == 'vatRate' for item in result['field_warnings']))
+        self.assertIsNone(self.draft('Invoice\nVAT rate: 1,000%')['vatRate'])
+
+    def test_tax_percent_header_and_inline_tax_label(self):
+        for printed in ('VAT rate (%)\n5.00', 'VAT %: 5', 'Widget quantity 2 VAT 5% AED 10.00'):
+            with self.subTest(printed=printed):
+                self.assertEqual(Decimal(self.draft('Invoice\n' + printed)['vatRate']), Decimal('5'))
+
+    def test_discount_percentage_not_vat_rate(self):
+        for printed in ('VAT exempt, discount 5%', 'VAT Amount: 0.00 Discount 5%', 'Discount 5%'):
+            with self.subTest(printed=printed):
+                self.assertIsNone(self.draft('Invoice\n' + printed)['vatRate'])
+
+    def test_same_row_buyer_seller_or_split_tax_ids_not_guessed(self):
+        for printed in ('Seller TRN: 001234567890001 Buyer TRN: 009876543210001', 'TRN: 00123 4567890001'):
+            with self.subTest(printed=printed):
+                self.assertIsNone(self.draft('Invoice\n' + printed)['supplierVatNumber'])
 
 
 if __name__ == '__main__':

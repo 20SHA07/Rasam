@@ -49,6 +49,7 @@ Groq has a free plan with request and token limits. Rasam shows a local draft wi
 
 - PDF and image uploads, local text recognition, and optional AI extraction.
 - Arabic and English field handling, with missing or ambiguous values left for review.
+- Invoice issue date, printed VAT rate, and supplier VAT number / TRN alongside invoice amounts.
 - Source documents and extracted text beside editable invoice details.
 - Amount checks, duplicate warnings, required human approval, and Excel export.
 

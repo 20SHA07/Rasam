@@ -32,6 +32,7 @@ def fixture():
     return {'supplier': 'Al Noor Stationery', 'invoiceNumber': 'R-00042',
             'date': '2026-09-21', 'currency': 'SAR', 'net': '100.00',
             'vat': '15.00', 'total': '115.00', 'is_invoice': True,
+            'vatRate': None, 'supplierVatNumber': None,
             'warnings': [], 'field_warnings': [], 'line_items': []}
 
 

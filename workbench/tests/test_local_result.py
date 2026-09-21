@@ -17,6 +17,7 @@ def fixture():
     return {'supplier': 'النور LLC', 'invoiceNumber': '00042-A/9',
             'date': '2026-09-21', 'currency': 'SAR', 'net': '100.00',
             'vat': '15.00', 'total': '115.00', 'is_invoice': True,
+            'vatRate': None, 'supplierVatNumber': None,
             'warnings': [], 'field_warnings': [], 'line_items': []}
 
 
@@ -32,7 +33,7 @@ class LocalResultTests(unittest.TestCase):
     def test_invalid_field_does_not_discard_valid_siblings(self):
         draft = fixture()
         draft.update(date='09/08/2026', net='1,234', currency='dirhams')
-        result = normalize_local_result(draft, TEXT)
+        result = normalize_local_result(draft, TEXT.replace('2026-09-21', '09/08/2026'))
         self.assertEqual(result['supplier'], 'النور LLC')
         self.assertEqual(result['invoiceNumber'], '00042-A/9')
         self.assertEqual(result['total'], '115.00')
@@ -109,13 +110,14 @@ class LocalResultTests(unittest.TestCase):
                               ('12 August 26', None), ('30 February 2026', None)):
             with self.subTest(raw=raw):
                 draft['date'] = raw
-                self.assertEqual(normalize_local_result(draft, TEXT)['date'], expected)
+                self.assertEqual(normalize_local_result(draft, TEXT.replace('Date: 2026-09-21\n', ''))['date'], expected)
 
     def test_missing_main_fields_are_null_with_notes(self):
         result = normalize_local_result({'is_invoice': True, 'supplier': 'Seller'}, TEXT)
         self.assertEqual(result['supplier'], 'Seller')
         self.assertIsNone(result['net'])
-        self.assertEqual(len(result['field_warnings']), 6)
+        self.assertEqual(result['date'], '2026-09-21')
+        self.assertEqual(len(result['field_warnings']), 7)
         self.assertEqual(result['line_items'], [])
         validate_invoice(result)
 
@@ -130,7 +132,7 @@ class LocalResultTests(unittest.TestCase):
     def test_calendar_date_and_supported_currency_are_checked(self):
         draft = fixture()
         draft.update(date='2026-02-30', currency=' aed ', supplier=' النور LLC ')
-        result = normalize_local_result(draft, TEXT)
+        result = normalize_local_result(draft, TEXT.replace('2026-09-21', '2026-02-30'))
         self.assertIsNone(result['date'])
         self.assertEqual(result['currency'], 'AED')
         self.assertEqual(result['supplier'], 'النور LLC')
@@ -195,7 +197,8 @@ class LocalResultTests(unittest.TestCase):
         draft['is_invoice'] = False
         draft['line_items'] = [{'description': 'Item', 'quantity': '1', 'unit_price': None, 'net_amount': None}]
         result = normalize_local_result(draft, TEXT)
-        for field in ('supplier', 'invoiceNumber', 'date', 'currency', 'net', 'vat', 'total'):
+        for field in ('supplier', 'invoiceNumber', 'date', 'currency', 'net', 'vat', 'total',
+                      'vatRate', 'supplierVatNumber'):
             self.assertIsNone(result[field])
         self.assertEqual(result['line_items'], [])
         self.assertTrue(result['warnings'])
@@ -214,6 +217,92 @@ class LocalResultTests(unittest.TestCase):
         draft['total'] = 115
         with self.assertRaises(ExtractionError):
             validate_invoice(draft)
+
+    def test_tax_fields_normalize_without_losing_identifier_zeroes(self):
+        draft = fixture()
+        draft.update(vatRate=' ٥٫١٢٥٪ ', supplierVatNumber=' ٠٠١٢٣٤٥٦٧٨٩٠٠٠١ ')
+        source = TEXT + '\nVAT rate: ٥٫١٢٥٪\nSupplier VAT Number: ٠٠١٢٣٤٥٦٧٨٩٠٠٠١'
+        result = normalize_local_result(draft, source)
+        self.assertEqual(result['vatRate'], '5.125')
+        self.assertEqual(result['supplierVatNumber'], '001234567890001')
+        self.assertEqual(result['total'], '115.00')
+
+    def test_bad_tax_fields_do_not_discard_the_rest_of_the_draft(self):
+        for rate, identifier in ((True, 123456), ('101%', {}), ('-1%', 'not supplied'),
+                                 ('5% / 15%', '0012,0013'), ('5.000%', '123456')):
+            with self.subTest(rate=rate, identifier=identifier):
+                draft = fixture()
+                draft.update(vatRate=rate, supplierVatNumber=identifier)
+                result = normalize_local_result(draft, TEXT)
+                self.assertIsNone(result['vatRate'])
+                self.assertIsNone(result['supplierVatNumber'])
+                self.assertEqual(result['supplier'], 'النور LLC')
+                self.assertEqual(result['total'], '115.00')
+                self.assertTrue({'vatRate', 'supplierVatNumber'}.issubset(
+                    {warning['field'] for warning in result['field_warnings']}))
+
+    def test_only_printed_tax_percentage_can_ground_a_rate(self):
+        for source in ('VAT amount: 5.00\nNet: 100.00\nTotal: 105.00',
+                       'Currency AED\nDiscount: 5%\nVAT: 5.00',
+                       'VAT rates: 5% and 15%', 'VAT exempt'):
+            with self.subTest(source=source):
+                draft = fixture()
+                draft['vatRate'] = '5'
+                self.assertIsNone(normalize_local_result(draft, TEXT + '\n' + source)['vatRate'])
+        for rate in (0, Decimal('5.125'), '٥٪', '5,25%'):
+            draft = fixture()
+            draft['vatRate'] = rate
+            expected = {'5,25%': '5.25', '٥٪': '5'}.get(str(rate), str(rate))
+            result = normalize_local_result(draft, TEXT + '\nVAT rate: ' + expected + '%')
+            self.assertEqual(result['vatRate'], expected)
+
+    def test_buyer_and_partial_registration_numbers_are_not_supplier_ids(self):
+        for source, expected in (('Buyer VAT Number: 001234567890001', None),
+                                 ('Supplier VAT Number: 99001234567890001', '99001234567890001'),
+                                 ('Supplier VAT Number: 001234567890001\nSeller TRN: 003456789012003', None)):
+            with self.subTest(source=source):
+                draft = fixture()
+                draft['supplierVatNumber'] = '001234567890001'
+                result = normalize_local_result(draft, TEXT + '\n' + source)
+                self.assertEqual(result['supplierVatNumber'], expected)
+                self.assertEqual(result['total'], '115.00')
+
+    def test_clear_labeled_ocr_recovers_missing_or_invalid_local_ai_fields(self):
+        source = ('Tax invoice\nSupplier: Noor\nInvoice Number: 00042\n'
+                  'Invoice Date (DD/MM/YYYY): 05/06/2026 14:30\nDue date: 2026-07-05\n'
+                  'VAT rate: ٥٪\nSupplier TRN: ٠٠١٢٣٤٥٦٧٨٩٠٠٠١\nTotal: 115.00 SAR')
+        for date_value, rate_value, id_value in ((None, None, None),
+                                                  ('not a date', 'invalid', 123456)):
+            with self.subTest(values=(date_value, rate_value, id_value)):
+                draft = fixture()
+                draft.update(date=date_value, vatRate=rate_value, supplierVatNumber=id_value)
+                draft['field_warnings'] = [{'field': field, 'message': 'No value was found.'}
+                                          for field in ('date', 'vatRate', 'supplierVatNumber')]
+                result = normalize_local_result(draft, source)
+                self.assertEqual(result['date'], '2026-06-05')
+                self.assertEqual(result['vatRate'], '5')
+                self.assertEqual(result['supplierVatNumber'], '001234567890001')
+                self.assertEqual(result['supplier'], 'النور LLC')
+                self.assertFalse({'date', 'vatRate', 'supplierVatNumber'} &
+                                 {note['field'] for note in result['field_warnings']})
+                self.assertEqual(sum('from labeled OCR text' in note for note in result['warnings']), 1)
+                self.assertFalse(any('Some local AI fields were left empty' in note for note in result['warnings']))
+        draft.update(date='2026-06-06', vatRate=None, supplierVatNumber=None)
+        self.assertEqual(normalize_local_result(draft, source)['date'], '2026-06-06')
+
+    def test_ambiguous_or_noninvoice_source_does_not_fill_missing_ai_fields(self):
+        for source, is_invoice in (
+                ('Tax invoice\nInvoice Date: 05/06/2026\nVAT: 5% and 15%\nBuyer TRN: 123456', True),
+                ('Tax invoice\nInvoice Number: A\nInvoice Number: B\nDate: 2026-06-05\nVAT: 5%\nSupplier TRN: 123456', True),
+                ('Quotation\nDate: 2026-06-05\nVAT: 5%\nSupplier TRN: 123456', True),
+                ('Tax invoice\nDate: 2026-06-05\nVAT: 5%\nSupplier TRN: 123456', False)):
+            with self.subTest(source=source, is_invoice=is_invoice):
+                draft = fixture()
+                draft.update(date=None, vatRate=None, supplierVatNumber=None, is_invoice=is_invoice)
+                result = normalize_local_result(draft, source)
+                for field in ('date', 'vatRate', 'supplierVatNumber'):
+                    self.assertIsNone(result[field])
+                self.assertFalse(any('from labeled OCR text' in note for note in result['warnings']))
 
 
 if __name__ == '__main__':
