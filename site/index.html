@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#09120c">
+  <meta name="description" content="Rasam is an early invoice-reading prototype for GCC bookkeeping teams. Read Arabic and English invoices, review the details, and export approved entries to Excel.">
+  <meta property="og:title" content="Rasam | From invoice pile to review-ready entries">
+  <meta property="og:description" content="AI-assisted invoice reading for GCC bookkeeping teams. Your invoices, your review, your Excel workflow.">
+  <meta property="og:type" content="website">
+  <title>Rasam | Invoice reading for GCC bookkeeping teams</title>
+  <link rel="icon" href="favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="styles.css">
+  <script src="script.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to content</a>
+  <svg class="icon-definitions" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <symbol id="i-arrow" viewBox="0 0 24 24"><path d="M5 12h14m-5-5 5 5-5 5"/></symbol>
+    <symbol id="i-mail" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="m12 3 2.4 6.6L21 12l-6.6 2.4L12 21l-2.4-6.6L3 12l6.6-2.4L12 3ZM20 3v4m-2-2h4"/></symbol>
+    <symbol id="i-scan" viewBox="0 0 24 24"><path d="M8 3H4a1 1 0 0 0-1 1v4m13-5h4a1 1 0 0 1 1 1v4M3 16v4a1 1 0 0 0 1 1h4m8 0h4a1 1 0 0 0 1-1v-4M7 8h10M7 12h10M7 16h6"/></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V3m-5 5 5-5 5 5M4 15v5a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-5"/></symbol>
+    <symbol id="i-sheet" viewBox="0 0 24 24"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 7h6M9 11h6M9 15h6M9 18h2"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24"><path d="m5 12 4 4L19 6"/></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="m12 3 8 3v6c0 5-8 9-8 9s-8-4-8-9V6l8-3Z"/><path d="M12 8v5m0 3v.1"/></symbol>
+    <symbol id="i-review" viewBox="0 0 24 24"><path d="M20 7H4m12-4 4 4-4 4M4 17h16M8 13l-4 4 4 4"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.8 13.1A9 9 0 0 1 10.9 3.2 9 9 0 1 0 20.8 13.1Z"/></symbol>
+    <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"/></symbol>
+  </svg>
+
+  <header class="site-header">
+    <div class="nav-wrap">
+      <a class="brand" href="#" aria-label="Rasam home">Rasam<span class="brand-dot">.</span></a>
+      <button class="menu-toggle icon-button" type="button" aria-label="Open navigation" aria-controls="navigation" aria-expanded="false"><svg class="icon"><use href="#i-menu"/></svg></button>
+      <nav id="navigation" class="navigation" aria-label="Main navigation">
+        <a href="#how-it-works">How it works</a>
+        <a href="#capabilities">Capabilities</a>
+        <a href="#vigilance">Vigilance</a>
+        <a href="#faq">FAQ</a>
+      </nav>
+      <div class="nav-actions">
+        <a class="button button-small button-muted" href="mailto:rasam@polsia.app?subject=Rasam%20early%20access">Request access</a>
+        <button class="theme-toggle icon-button" type="button" aria-label="Switch to light theme" aria-pressed="false" title="Switch theme"><svg class="icon"><use href="#i-moon"/></svg></button>
+      </div>
+    </div>
+  </header>
+
+  <main id="main">
+    <section class="hero section" aria-labelledby="hero-title">
+      <div class="container hero-grid">
+        <div class="hero-copy">
+          <div class="eyebrow-pill"><span class="status-dot"></span> Early prototype for GCC bookkeeping teams</div>
+          <h1 id="hero-title">From invoice pile to <span>review-ready</span> entries.</h1>
+          <p class="hero-description">Invoice reading built around the way GCC accountants work. Rasam helps read Arabic and English invoices, puts the details in a review queue, and exports approved entries to Excel.</p>
+          <div class="button-row">
+            <a class="button button-primary" href="./workbench.html"><svg class="icon"><use href="#i-sheet"/></svg> Try the workbench</a>
+            <a class="button button-outline" href="#how-it-works">How Rasam works <svg class="icon"><use href="#i-arrow"/></svg></a>
+          </div>
+          <div class="hero-facts" aria-label="Core features">
+            <div><strong>Arabic + English</strong><span>AI-assisted field reading</span></div>
+            <div><strong>Human approval</strong><span>Every entry gets your review</span></div>
+            <div><strong>Excel export</strong><span>Keep your familiar workflow</span></div>
+          </div>
+        </div>
+        <div class="journal-wrap">
+          <div class="journal-card" aria-label="Illustrative invoice draft">
+            <div class="journal-header"><span><svg class="icon"><use href="#i-sheet"/></svg> Illustrative invoice draft</span><span class="review-badge">Needs review</span></div>
+            <dl class="journal-fields">
+              <div><dt>Supplier</dt><dd>Al Noor Stationery LLC</dd></div>
+              <div><dt>Date</dt><dd>12 Aug 2026</dd></div>
+              <div><dt>Net · VAT · Total</dt><dd>1,950.00 · 292.50 · <strong>2,242.50 SAR</strong></dd></div>
+            </dl>
+            <div class="journal-note"><span class="tiny-label">Source attached</span><span>invoice-9481.pdf <span class="note-separator">/</span> Office supplies</span></div>
+            <div class="journal-footer"><span><svg class="icon"><use href="#i-scan"/></svg> Fields extracted</span><span><svg class="icon"><use href="#i-check"/></svg> Totals match</span><span><svg class="icon"><use href="#i-review"/></svg> Your approval next</span></div>
+          </div>
+          <p class="journal-caption">A sample of the workflow. Your review makes it ready.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="how-it-works" class="section workflow-section" aria-labelledby="workflow-title">
+      <div class="container">
+        <div class="section-heading heading-row">
+          <div><p class="eyebrow">How it works</p><h2 id="workflow-title">Four steps. You keep the final say.</h2><p>Start with an invoice. End with a checked entry you can use.<br class="desktop-break"> Your books and approval discipline stay in your hands.</p></div>
+          <a class="text-link" href="#capabilities">See capabilities <svg class="icon"><use href="#i-arrow"/></svg></a>
+        </div>
+        <div class="workflow-demo">
+          <div class="workflow-tabs" role="tablist" aria-label="Invoice workflow">
+            <button type="button" id="tab-ingest" role="tab" aria-selected="true" aria-controls="panel-ingest" tabindex="0"><svg class="icon"><use href="#i-upload"/></svg> Ingest</button>
+            <button type="button" id="tab-extract" role="tab" aria-selected="false" aria-controls="panel-extract" tabindex="-1"><svg class="icon"><use href="#i-scan"/></svg> Extract</button>
+            <button type="button" id="tab-review" role="tab" aria-selected="false" aria-controls="panel-review" tabindex="-1"><svg class="icon"><use href="#i-review"/></svg> Review</button>
+            <button type="button" id="tab-export" role="tab" aria-selected="false" aria-controls="panel-export" tabindex="-1"><svg class="icon"><use href="#i-sheet"/></svg> Export</button>
+            <span class="demo-label">Workflow preview</span>
+          </div>
+          <div class="workflow-panel" id="panel-ingest" role="tabpanel" aria-labelledby="tab-ingest" tabindex="0">
+            <div class="workflow-copy"><h3>One place for the invoice pile.</h3><p>Drop in a PDF or an invoice photo, including files saved from email or WhatsApp. Keep the original attached while you review the details.</p><div class="file-chips"><span>PDF</span><span>JPG</span><span>PNG</span><span>Scans</span></div></div>
+            <div class="inbox-preview"><div class="mini-heading">Sample inbox <span>03 files</span></div><div class="inbox-row"><strong>Al Noor Stationery</strong><span>invoice-9481.pdf</span></div><div class="inbox-row"><strong>Tasheel Print House</strong><span>invoice-photo.jpg</span></div><div class="inbox-row"><strong>Riyadh Catering Co.</strong><span>scan-002.png</span></div><div class="inbox-bottom"><span class="status-dot"></span> Original documents stay beside the draft</div></div>
+          </div>
+          <div class="workflow-panel" id="panel-extract" role="tabpanel" aria-labelledby="tab-extract" tabindex="0" hidden>
+            <div class="workflow-copy"><h3>Read the details in either language.</h3><p>AI suggests the supplier, invoice number, date, currency and amounts from Arabic or English documents. Missing or unclear values are left for you to check.</p><div class="file-chips"><span>Arabic</span><span>English</span><span>Mixed script</span></div></div>
+            <div class="inbox-preview"><div class="mini-heading">Illustrative extraction <span>AI draft</span></div><div class="inbox-row"><strong>Supplier</strong><span lang="ar" dir="rtl">النور للقرطاسية</span></div><div class="inbox-row"><strong>Invoice number</strong><span>INV-9481</span></div><div class="inbox-row"><strong>Total</strong><span>2,242.50 SAR</span></div><div class="inbox-bottom"><svg class="icon"><use href="#i-scan"/></svg> Available in the local app with your API key</div></div>
+          </div>
+          <div class="workflow-panel" id="panel-review" role="tabpanel" aria-labelledby="tab-review" tabindex="0" hidden>
+            <div class="workflow-copy"><h3>The draft gets a second pair of eyes.</h3><p>Check the source, fix any values, and review duplicate or total warnings. You approve each entry before it can be exported.</p><div class="file-chips"><span>Edit</span><span>Check</span><span>Approve</span></div></div>
+            <div class="inbox-preview"><div class="mini-heading">Illustrative review <span>Your decision</span></div><div class="inbox-row"><strong>Source invoice</strong><span>Attached</span></div><div class="inbox-row"><strong>Net + VAT = total</strong><span class="positive">Matches</span></div><div class="inbox-row"><strong>Approval</strong><span>Waiting for review</span></div><div class="inbox-bottom"><svg class="icon"><use href="#i-review"/></svg> Editing an approved entry reopens its review</div></div>
+          </div>
+          <div class="workflow-panel" id="panel-export" role="tabpanel" aria-labelledby="tab-export" tabindex="0" hidden>
+            <div class="workflow-copy"><h3>Take the approved rows to Excel.</h3><p>Download your approved entries as an Excel workbook with dates and numeric amounts. Use those rows in your existing bookkeeping process.</p><div class="file-chips"><span>.xlsx</span><span>Approved entries</span></div></div>
+            <div class="inbox-preview"><div class="mini-heading">Illustrative export <span>Excel workbook</span></div><div class="inbox-row"><strong>Approved entries</strong><span>Included</span></div><div class="inbox-row"><strong>Unreviewed drafts</strong><span>Excluded</span></div><div class="inbox-row"><strong>File format</strong><span>Microsoft Excel (.xlsx)</span></div><div class="inbox-bottom"><svg class="icon"><use href="#i-sheet"/></svg> Direct ERP posting is planned</div></div>
+          </div>
+        </div>
+        <ol class="steps-grid">
+          <li><span class="step-number">01</span><svg class="feature-icon"><use href="#i-upload"/></svg><h3>Ingest</h3><p>Add invoice PDFs, photos and scans to the review queue.</p></li>
+          <li><span class="step-number">02</span><svg class="feature-icon"><use href="#i-scan"/></svg><h3>Extract</h3><p>Let AI suggest the fields from Arabic and English invoices.</p></li>
+          <li><span class="step-number">03</span><svg class="feature-icon"><use href="#i-review"/></svg><h3>Review</h3><p>Check the original, edit the details and approve the entry.</p></li>
+          <li><span class="step-number">04</span><svg class="feature-icon"><use href="#i-sheet"/></svg><h3>Export</h3><p>Download approved entries in an Excel workbook.</p></li>
+        </ol>
+      </div>
+    </section>
+
+    <section id="capabilities" class="section capabilities-section" aria-labelledby="capabilities-title">
+      <div class="container">
+        <div class="section-heading centered-heading"><p class="eyebrow">Capabilities</p><h2 id="capabilities-title">Built for the invoice.<br>And the person reviewing it.</h2><p>Less copying between windows. More time to check the entries that need attention. Here is what the prototype can do, and what comes next.</p></div>
+        <div class="capabilities-grid">
+          <article class="capability-card"><svg class="feature-icon"><use href="#i-scan"/></svg><h3>Arabic + English reading</h3><p>AI reads supplier details, dates and amounts from PDFs and images. Review every suggestion against the original invoice.</p><span class="feature-status">Local app · API key required</span></article>
+          <article class="capability-card"><svg class="feature-icon"><use href="#i-review"/></svg><h3>Source beside the draft</h3><p>Keep the document in view while you check the extracted details. Fix a digit, change a date, or fill in a missing field.</p><span class="feature-status">Available in the prototype</span></article>
+          <article class="capability-card"><svg class="feature-icon"><use href="#i-shield"/></svg><h3>Duplicate &amp; total flags</h3><p>Spot possible duplicates in your queue and check whether net plus VAT matches the total before you approve.</p><span class="feature-status">Available in the prototype</span></article>
+          <article class="capability-card"><svg class="feature-icon"><use href="#i-check"/></svg><h3>Approval stays with you</h3><p>Only approved entries make it into the export. Edit an approved entry and Rasam asks you to review it again.</p><span class="feature-status">Available in the prototype</span></article>
+          <article class="capability-card"><svg class="feature-icon"><use href="#i-sheet"/></svg><h3>Excel you can work with</h3><p>Export dates and amounts as usable spreadsheet values. Keep working in the files your team already knows.</p><span class="feature-status">Available in the prototype</span></article>
+          <article class="capability-card roadmap-card"><svg class="feature-icon"><use href="#i-spark"/></svg><span class="planned-badge">Planned</span><h3>Learning from your corrections</h3><p>Build a memory of reviewed supplier details and account choices, separately for each company. This is the next step, not active training today.</p><a class="text-link" href="#learning-faq">How learning would work <svg class="icon"><use href="#i-arrow"/></svg></a></article>
+        </div>
+      </div>
+    </section>
+
+    <section id="vigilance" class="section regional-section" aria-labelledby="regional-title">
+      <div class="container regional-grid">
+        <div class="regional-copy"><p class="eyebrow">Built with GCC teams in mind</p><h2 id="regional-title">Your invoices.<br>Your language.<br>Your way of working.</h2><p>Rasam started with a familiar sight: someone spending hours typing invoice details into Excel. We are building around that everyday work, with Arabic and English documents and a person checking the result.</p><div class="regional-features"><div><strong>Bilingual documents</strong><span>Arabic, English and mixed-script invoices.</span></div><div><strong>SAR &amp; AED amounts</strong><span>Read the currency shown on the source.</span></div><div><strong>Review before export</strong><span>Check the invoice and correct the draft.</span></div><div><strong>Regional integrations</strong><span>ZATCA and UAE e-invoicing are on the roadmap.</span></div></div><p class="regional-note">The prototype does not validate e-invoice compliance or connect to tax authorities.</p></div>
+        <aside class="learning-card" aria-labelledby="learning-title"><p class="eyebrow">Where Rasam goes next</p><h3 id="learning-title">Learning starts with the corrections you trust.</h3><p>Repeated invoices can give Rasam useful examples. The plan is to remember what a reviewer approved and suggest it the next time.</p><ul><li>Recognize the same supplier across different invoice layouts.</li><li>Suggest account coding from that company's reviewed examples.</li><li>Keep each company's records and preferences separate.</li></ul><a class="text-link" href="#learning-faq">Read about the learning plan <svg class="icon"><use href="#i-arrow"/></svg></a></aside>
+      </div>
+    </section>
+
+    <section class="section pilot-section" aria-labelledby="pilot-title">
+      <div class="container"><div class="pilot-card"><div><p class="eyebrow">Early access</p><h2 id="pilot-title">Help shape Rasam<br>around a real month-end.</h2><p>Are you a bookkeeping team in Saudi Arabia or the UAE? Tell us about your invoice volume, your accounting software, and the part that takes the most time.</p><div class="pilot-tags"><span>Early prototype</span><span>Excel workflow</span><span>Built with your feedback</span></div></div><div class="pilot-action"><a class="button button-primary" href="mailto:rasam@polsia.app?subject=Rasam%20pilot%20request"><svg class="icon"><use href="#i-mail"/></svg> Request early access</a><p>Start a conversation with the Rasam team.<br><a href="#faq">A few answers below.</a></p></div></div></div>
+    </section>
+
+    <section id="faq" class="section faq-section" aria-labelledby="faq-title">
+      <div class="container faq-grid">
+        <div class="section-heading"><p class="eyebrow">FAQ</p><h2 id="faq-title">The questions<br>worth asking.</h2><p>If yours is not here, write to<br><a href="mailto:rasam@polsia.app">rasam@polsia.app</a>.</p></div>
+        <div class="faq-list">
+          <details><summary>Does Rasam replace our accounting software?<span class="faq-indicator" aria-hidden="true"></span></summary><p>No. The prototype helps turn invoice details into reviewed rows for Excel. You keep your accounting software and decide how to use the exported entries.</p></details>
+          <details><summary>Can it read Arabic and English invoices?<span class="faq-indicator" aria-hidden="true"></span></summary><p>The local app can send invoice PDFs and images to an AI model for Arabic and English field extraction. Results need a human check, especially for blurry images, unusual layouts or unclear numbers. It is not yet benchmarked across GCC invoice types.</p></details>
+          <details><summary>Does AI reading work in the online workbench?<span class="faq-indicator" aria-hidden="true"></span></summary><p>The online workbench lets you explore manual entry, review and Excel export. AI reading runs through the local app with your own OpenAI API key. When you click Read with AI there, the document is sent to OpenAI and API usage charges may apply.</p></details>
+          <details id="learning-faq"><summary>Can Rasam learn from multiple GCC invoices?<span class="faq-indicator" aria-hidden="true"></span></summary><p>Yes, that is part of the plan. A useful first step is company-specific memory: store reviewed examples, find a similar past invoice, and suggest the supplier or account choice that was approved before. Corrections would stay separate for each company.</p><p>The current prototype does not do this yet, and uploading invoices does not train a model. Further model training is a separate option to evaluate after collecting labeled examples with permission and measuring results on invoices it has not seen.</p></details>
+          <details><summary>Is it connected to Business Central or ZATCA?<span class="faq-indicator" aria-hidden="true"></span></summary><p>Not yet. The prototype exports an Excel workbook. Business Central integration, e-invoice QR validation and connections to regional e-invoicing services are planned work, not available features.</p></details>
+          <details><summary>What happens to the invoices I upload?<span class="faq-indicator" aria-hidden="true"></span></summary><p>The online prototype keeps its queue in the current browser session. Refreshing or closing the page clears it, so export approved entries before leaving. AI reading in the local app sends the selected document to OpenAI only when you request it.</p></details>
+          <details><summary>What does early access look like?<span class="faq-indicator" aria-hidden="true"></span></summary><p>Start with a conversation about your workflow. We want to understand the kinds of invoices you handle, where manual entry slows you down, and what an export must contain to be useful to your team.</p></details>
+        </div>
+      </div>
+    </section>
+
+    <section class="contact-section" aria-label="Contact Rasam"><div class="container contact-row"><div class="contact-copy"><span class="contact-icon"><svg class="icon"><use href="#i-mail"/></svg></span><div><a class="contact-email" href="mailto:rasam@polsia.app">rasam@polsia.app</a><p>For early access, feedback, and the occasional invoice horror story.</p></div></div><a class="button button-outline button-small" href="mailto:rasam@polsia.app?subject=Hello%20Rasam">Compose <svg class="icon"><use href="#i-arrow"/></svg></a></div></section>
+  </main>
+  <footer class="site-footer"><div class="nav-wrap footer-row"><div><a href="./workbench.html">Workbench</a><a href="https://github.com/20SHA07/Rasam" target="_blank" rel="noopener noreferrer">GitHub<span class="sr-only"> (opens in a new tab)</span></a><a href="mailto:rasam@polsia.app">Contact</a></div><span>© 2026 Rasam</span></div></footer>
+</body>
+</html>

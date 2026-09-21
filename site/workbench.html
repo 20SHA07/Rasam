@@ -1,0 +1,2486 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="description" content="Rasam: invoice reading and human review. Read Arabic and English invoices with AI, check the details, and export approved entries to Excel.">
+  <title>Rasam · Workbench preview</title>
+  <style>
+:root {
+  --ink:#20372f;
+  --muted:#687a72;
+  --green:#146444;
+  --mint:#def0e3;
+  --border:#e1e7df;
+  --bg:#f5f6f1;
+  --sidebar:#102c21;
+  --paper:#fff;
+  --amber:#926524;
+  --amber-bg:#fff4df;
+  font-family:Inter,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;
+  color:var(--ink);
+  font-size:14px;
+  line-height:1.5;
+  font-synthesis:none
+}
+* {
+  box-sizing:border-box
+}
+body {
+  margin:0;
+  background:var(--bg)
+}
+button,input,select,textarea {
+  font:inherit
+}
+button,a,input,select {
+  -webkit-tap-highlight-color:transparent
+}
+button {
+  cursor:pointer
+}
+button:disabled {
+  cursor:not-allowed
+}
+a {
+  color:inherit;
+  text-decoration:none
+}
+button {
+  color:inherit
+}
+button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible {
+  outline:3px solid #7ea78e;
+  outline-offset:3px
+}
+button {
+  transition:background .15s,border-color .15s,transform .15s
+}
+button:not(:disabled):active {
+  transform:translateY(1px)
+}
+[hidden] {
+  display:none!important
+}
+h1,h2,h3,p {
+  margin:0
+}
+svg.icon {
+  width:18px;
+  height:18px;
+  stroke:currentColor;
+  stroke-width:1.7;
+  fill:none;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+  flex-shrink:0;
+  vertical-align:middle
+}
+span[data-icon] {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center
+}
+.app-shell {
+  display:grid;
+  grid-template-columns:198px minmax(0,1fr);
+  min-height:100vh
+}
+.sidebar {
+  background:var(--sidebar);
+  color:#cad7cc;
+  padding:30px 18px 20px;
+  display:flex;
+  flex-direction:column;
+  position:sticky;
+  top:0;
+  height:100vh;
+  min-height:630px
+}
+.brand {
+  color:#f3f8ef;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  font-size:31px;
+  font-weight:650;
+  letter-spacing:-1.8px;
+  padding-left:9px
+}
+.brand-symbol {
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:30px;
+  height:31px;
+  border:1px solid #5c7e66;
+  background:#234933;
+  border-radius:7px;
+  font-size:23px;
+  color:#b7dfa7;
+  font-family:Georgia,serif;
+  letter-spacing:-1.4px;
+  padding-bottom:3px
+}
+.brand-period {
+  color:#90c084
+}
+.workspace-label {
+  font-size:10px;
+  letter-spacing:1.6px;
+  color:#8ea597;
+  margin:47px 10px 15px
+}
+.workspace-name {
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:0 8px;
+  color:#ecf2e9;
+  font-size:13px;
+  font-weight:500
+}
+.workspace-name small {
+  display:block;
+  font-size:11px;
+  color:#9caf9e;
+  font-weight:400
+}
+.workspace-avatar {
+  background:#31513e;
+  border:1px solid #44604b;
+  border-radius:8px;
+  padding:6px 11px;
+  color:#d8e4d4
+}
+.sidebar nav {
+  margin-top:30px;
+  display:grid;
+  gap:6px
+}
+.nav-item {
+  border:0;
+  background:none;
+  display:flex;
+  gap:9px;
+  align-items:center;
+  text-align:left;
+  width:100%;
+  padding:12px 10px;
+  border-radius:7px;
+  font-size:12px;
+  color:#b3c7b9
+}
+.nav-item.active {
+  background:#284b36;
+  color:#eef6e7
+}
+.nav-item.active svg {
+  color:#b7d7a2
+}
+.nav-item:hover {
+  background:#234331
+}
+.sidebar-note {
+  margin:70px 9px 35px;
+  border-top:1px solid #34503c;
+  padding-top:24px
+}
+.note-leaf {
+  color:#a7cba0;
+  margin-bottom:11px
+}
+.note-leaf svg {
+  width:25px;
+  height:25px
+}
+.sidebar-note h3 {
+  font-family:Georgia,serif;
+  font-size:21px;
+  font-weight:400;
+  line-height:1.3;
+  color:#e8f0df
+}
+.sidebar-note p {
+  font-size:12px;
+  line-height:1.7;
+  color:#aec0ac;
+  margin:13px 0
+}
+.sidebar-link {
+  border:0;
+  background:none;
+  padding:0;
+  color:#c9e3b6;
+  font-size:12px;
+  display:flex;
+  align-items:center;
+  gap:13px
+}
+.sidebar-bottom {
+  margin-top:auto;
+  border-top:1px solid #314b38;
+  padding-top:17px;
+  display:flex;
+  align-items:center;
+  gap:7px;
+  font-size:10px;
+  color:#b9c8b8
+}
+.status-dot {
+  width:5px;
+  height:5px;
+  border-radius:50%;
+  background:#a0c888
+}
+.version {
+  margin-left:auto;
+  font-size:10px;
+  color:#8ca08b
+}
+main {
+  min-width:0
+}
+.topbar {
+  height:65px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  border-bottom:1px solid var(--border);
+  padding:0 30px;
+  background:#f9faf6
+}
+.breadcrumb {
+  display:flex;
+  gap:14px;
+  align-items:center;
+  color:#7b877e;
+  font-size:12px
+}
+.breadcrumb span {
+  color:#b5bfb3
+}
+.breadcrumb strong {
+  font-weight:500;
+  color:#43594a
+}
+.guide-icon {
+  height:25px;
+  width:25px;
+  border:1px solid #c9d2c5;
+  background:none;
+  border-radius:50%;
+  color:#677b68
+}
+.page {
+  padding:32px 30px 20px;
+  max-width:1600px;
+  margin:auto
+}
+.page-heading {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:20px;
+  margin-bottom:26px
+}
+.eyebrow {
+  font-size:10px;
+  color:#698168;
+  letter-spacing:1.75px;
+  font-weight:650
+}
+h1 {
+  font-size:32px;
+  letter-spacing:-1.25px;
+  font-weight:550;
+  line-height:1.2;
+  margin:9px 0
+}
+.heading-description {
+  font-size:13px;
+  color:var(--muted)
+}
+.heading-actions {
+  display:flex;
+  gap:9px;
+  flex-shrink:0
+}
+.button {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:8px;
+  border-radius:6px;
+  padding:10px 15px;
+  font-size:12px;
+  font-weight:550;
+  min-height:39px;
+  white-space:nowrap;
+  border:1px solid transparent
+}
+.button svg {
+  width:16px;
+  height:16px
+}
+.primary {
+  background:var(--green);
+  color:white;
+  border-color:var(--green);
+  box-shadow:0 2px 3px #22482c12
+}
+.primary:hover {
+  background:#0e5137
+}
+.secondary {
+  background:#fcfdf9;
+  border-color:#d7dfd2
+}
+.secondary:hover {
+  background:#eaf0e5
+}
+.prototype-note {
+  background:#eaf0e3;
+  border:1px solid #dce6d2;
+  border-radius:7px;
+  padding:12px 14px;
+  display:flex;
+  align-items:center;
+  gap:11px;
+  margin-bottom:22px;
+  font-size:11px;
+  color:#586c50
+}
+.prototype-note p {
+  flex:1;
+  line-height:1.65
+}
+.prototype-note strong {
+  font-weight:600;
+  color:#3b553b
+}
+.note-icon {
+  color:#6a845c
+}
+.prototype-note button {
+  background:none;
+  border:0;
+  font-size:11px;
+  color:#405e3d;
+  white-space:nowrap;
+  padding:4px
+}
+.workbench {
+  display:grid;
+  grid-template-columns:218px minmax(0,1fr);
+  border:1px solid #dce3d8;
+  border-radius:10px;
+  background:var(--paper);
+  overflow:hidden;
+  box-shadow:0 4px 18px #30453504;
+  min-height:660px
+}
+.inbox-panel {
+  border-right:1px solid var(--border);
+  display:flex;
+  flex-direction:column;
+  background:#fafbf7;
+  min-width:0
+}
+.inbox-title {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:19px 15px 16px
+}
+.inbox-title h2 {
+  font-size:13px;
+  font-weight:600;
+  display:flex;
+  align-items:center;
+  gap:7px
+}
+.count {
+  font-size:10px;
+  font-weight:500;
+  background:#e7ede2;
+  min-width:20px;
+  border-radius:4px;
+  text-align:center;
+  padding:1px 4px;
+  color:#57734f
+}
+.small-muted {
+  font-size:10px;
+  color:#7b8b78
+}
+.drop-zone {
+  background:#f6f8f1;
+  border:1px dashed #becdb5;
+  border-radius:7px;
+  padding:17px 7px;
+  margin:0 12px 20px;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  color:#64785e;
+  gap:4px
+}
+.drop-zone:hover,.drop-zone.drag-over {
+  background:#e8f1df;
+  border-color:#709967
+}
+.drop-zone.drag-over {
+  outline:2px solid #96ba86
+}
+.upload-circle {
+  padding:8px;
+  border-radius:50%;
+  background:#e9efdf;
+  color:#5c7950;
+  margin-bottom:6px
+}
+.drop-zone strong {
+  font-size:11px;
+  font-weight:550;
+  color:#425d3c
+}
+.drop-zone>span:not(.upload-circle) {
+  font-size:10px
+}
+.drop-zone small {
+  font-size:9px;
+  color:#687b60;
+  margin-top:7px
+}
+.filter-buttons {
+  padding:0 11px 12px;
+  display:flex;
+  gap:4px;
+  border-bottom:1px solid var(--border)
+}
+.filter-buttons button {
+  border:0;
+  background:none;
+  border-radius:5px;
+  font-size:10px;
+  padding:6px 9px;
+  color:#6e8068
+}
+.filter-buttons button[aria-pressed=true] {
+  background:#e6ede0;
+  color:#315d2e;
+  font-weight:600
+}
+.invoice-list {
+  padding:7px;
+  display:flex;
+  flex-direction:column;
+  gap:6px;
+  max-height:470px;
+  overflow-y:auto
+}
+.invoice-item {
+  width:100%;
+  text-align:left;
+  border:1px solid transparent;
+  background:none;
+  border-radius:7px;
+  display:block;
+  padding:12px 10px
+}
+.invoice-item:hover {
+  background:#f0f3e9
+}
+.invoice-item[aria-pressed=true] {
+  background:#ebf1e4;
+  border-color:#d1dec5
+}
+.invoice-item-head {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  margin-bottom:10px
+}
+.file-tile {
+  width:29px;
+  height:33px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-shrink:0;
+  color:#69815c;
+  background:#fcfdf8;
+  border:1px solid #d9e2cf;
+  border-radius:5px
+}
+.file-tile svg {
+  width:16px;
+  height:16px
+}
+.invoice-item-name {
+  font-size:11px;
+  font-weight:600;
+  line-height:1.4;
+  display:block;
+  overflow-wrap:anywhere
+}
+.invoice-item-number {
+  font-size:10px;
+  color:#7d8c74;
+  display:block;
+  margin-top:3px;
+  overflow-wrap:anywhere
+}
+.invoice-item-foot {
+  display:flex;
+  gap:6px;
+  align-items:center;
+  justify-content:space-between
+}
+.invoice-item-amount {
+  font-size:11px;
+  font-weight:600;
+  white-space:nowrap;
+  font-variant-numeric:tabular-nums
+}
+.mini-status {
+  font-size:9px;
+  color:#8d682c;
+  background:#fff2d9;
+  padding:3px 6px;
+  border-radius:4px;
+  white-space:nowrap
+}
+.mini-status.approved {
+  background:#dcebd6;
+  color:#396936
+}
+.empty-list {
+  padding:24px 10px;
+  text-align:center;
+  font-size:12px;
+  color:#73806e
+}
+.inbox-footer {
+  padding:22px 14px 17px;
+  margin-top:auto;
+  color:#7a8772;
+  font-size:10px;
+  line-height:1.8;
+  display:flex;
+  gap:7px;
+  align-items:flex-start
+}
+.inbox-footer svg {
+  width:12px;
+  height:12px;
+  margin-top:3px
+}
+.review-panel {
+  min-width:0
+}
+.review-heading {
+  min-height:70px;
+  border-bottom:1px solid var(--border);
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:15px 19px;
+  gap:10px
+}
+.selected-title {
+  display:flex;
+  align-items:center;
+  gap:11px;
+  min-width:0
+}
+.document-icon {
+  background:#f0f4e9;
+  color:#648255;
+  border-radius:7px;
+  width:34px;
+  height:38px;
+  flex-shrink:0
+}
+.selected-title h2 {
+  font-size:13px;
+  font-weight:600;
+  overflow-wrap:anywhere
+}
+.selected-title p {
+  font-size:10px;
+  color:#788b72;
+  margin-top:2px;
+  overflow-wrap:anywhere
+}
+.review-heading-right {
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-shrink:0
+}
+.status-badge {
+  font-size:10px;
+  color:#8c6223;
+  background:#fff5df;
+  border:1px solid #efdfba;
+  border-radius:5px;
+  padding:4px 7px
+}
+.status-badge.approved {
+  background:#e8f4e1;
+  border-color:#cde1c0;
+  color:#376836
+}
+.icon-button {
+  width:27px;
+  height:30px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  border:0;
+  background:none;
+  border-radius:5px;
+  color:#85917b
+}
+.icon-button:hover {
+  background:#f0f3e8;
+  color:#46643e
+}
+.icon-button svg {
+  width:15px;
+  height:15px
+}
+.review-columns {
+  display:grid;
+  grid-template-columns:minmax(250px,.96fr) minmax(295px,1fr)
+}
+.panel-label {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+  padding:17px 18px 13px
+}
+.panel-label h3 {
+  font-size:11px;
+  font-weight:600
+}
+.panel-label>span {
+  font-size:8px;
+  letter-spacing:1px;
+  color:#718568
+}
+.source-panel {
+  border-right:1px solid var(--border);
+  background:#f7f8f2;
+  min-width:0;
+  display:flex;
+  flex-direction:column
+}
+.source-canvas {
+  margin:0 14px;
+  background:#ebeee4;
+  border:1px solid #e1e6da;
+  border-radius:6px;
+  min-height:426px;
+  padding:20px 14px;
+  display:flex;
+  align-items:flex-start;
+  justify-content:center
+}
+.paper-invoice {
+  background:white;
+  box-shadow:0 3px 8px #172e1810;
+  width:100%;
+  max-width:420px;
+  min-height:363px;
+  padding:21px 17px;
+  color:#374639;
+  position:relative;
+  font-size:9px;
+  border:1px solid #e4e7df
+}
+.paper-top {
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:5px
+}
+.paper-mark {
+  font-family:Georgia,serif;
+  font-size:22px;
+  line-height:1;
+  font-weight:bold;
+  color:#335537
+}
+.paper-arabic {
+  font-size:11px;
+  color:#58744e;
+  font-family:Tahoma,Arial,sans-serif
+}
+.paper-supplier {
+  font-size:10px;
+  font-weight:650;
+  margin-top:10px;
+  line-height:1.5
+}
+.paper-address {
+  font-size:8px;
+  color:#838d7c;
+  margin-top:3px;
+  line-height:1.7
+}
+.paper-title {
+  padding:17px 0 10px;
+  margin-top:7px;
+  border-top:1px solid #e4e8df;
+  font-size:13px;
+  font-weight:600;
+  letter-spacing:1px
+}
+.paper-meta {
+  display:flex;
+  justify-content:space-between;
+  gap:4px;
+  font-size:8px;
+  color:#67785e;
+  margin:0 0 12px
+}
+.paper-table {
+  width:100%;
+  border-collapse:collapse;
+  font-size:8px
+}
+.paper-table th {
+  text-align:left;
+  font-size:7px;
+  letter-spacing:.4px;
+  font-weight:500;
+  color:#839277;
+  background:#f5f7f0;
+  padding:6px 4px
+}
+.paper-table th:last-child,.paper-table td:last-child {
+  text-align:right;
+  white-space:nowrap
+}
+.paper-table td {
+  padding:9px 4px;
+  border-bottom:1px solid #edf0e7
+}
+.paper-totals {
+  margin-left:27%;
+  padding-top:12px
+}
+.paper-total-line {
+  display:flex;
+  justify-content:space-between;
+  gap:7px;
+  font-size:8px;
+  margin-bottom:7px;
+  color:#74816b
+}
+.paper-grand-total {
+  border-top:1px solid #dfe5d7;
+  padding-top:8px;
+  font-weight:650;
+  color:#355132;
+  font-size:10px
+}
+.paper-stamp {
+  margin-top:19px;
+  font-size:7px;
+  letter-spacing:.8px;
+  color:#9ca58f;
+  border-top:1px dashed #e1e7d9;
+  padding-top:9px
+}
+.source-caption {
+  text-align:center;
+  font-size:9px;
+  color:#76876d;
+  padding:12px 6px 15px
+}
+.source-image {
+  width:100%;
+  max-height:540px;
+  object-fit:contain
+}
+.source-pdf {
+  width:100%;
+  height:500px;
+  background:#fff;
+  border:0
+}
+.file-open-link {
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  color:#426d3c;
+  text-decoration:underline;
+  font-size:10px
+}
+.source-canvas.has-upload {
+  padding:5px;
+  align-items:stretch
+}
+.fields-panel {
+  padding:0 18px 12px;
+  min-width:0
+}
+.fields-panel>.panel-label {
+  padding:17px 0 9px
+}
+.panel-label>.editable-label {
+  display:flex;
+  align-items:center;
+  gap:4px;
+  color:#849378;
+  font-size:9px;
+  letter-spacing:0
+}
+.editable-label svg {
+  width:11px;
+  height:11px
+}
+.fields-description {
+  font-size:10px;
+  color:#78886f;
+  margin-bottom:16px;
+  line-height:1.6
+}
+.field {
+  display:block;
+  font-size:10px;
+  color:#4b6145;
+  font-weight:500;
+  margin-bottom:12px
+}
+.required {
+  color:#81957a
+}
+.optional {
+  font-size:9px;
+  font-weight:400;
+  color:#7b8e73;
+  margin-left:4px
+}
+.field input,.field select {
+  width:100%;
+  display:block;
+  margin-top:5px;
+  border:1px solid #dae2d2;
+  border-radius:5px;
+  background:#fff;
+  padding:8px 10px;
+  font-size:11px;
+  height:35px;
+  color:#30492b;
+  min-width:0;
+  box-shadow:0 1px 2px #264b2203
+}
+.field input:hover,.field select:hover {
+  border-color:#aabb9b
+}
+.field input[aria-invalid=true] {
+  border-color:#b6664e;
+  background:#fffaf7
+}
+.field input::placeholder {
+  color:#93a089;
+  font-size:10px
+}
+.two-fields {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px
+}
+.currency-field select {
+  height:35px
+}
+.section-divider {
+  font-size:8px;
+  letter-spacing:1.1px;
+  color:#849579;
+  border-top:1px solid #e7ebdf;
+  padding:13px 0 11px
+}
+.total-input-wrap {
+  position:relative
+}
+.total-input-wrap>span {
+  position:absolute;
+  left:11px;
+  top:9px;
+  font-size:10px;
+  color:#7f9275;
+  font-weight:500
+}
+.total-input-wrap>input {
+  padding-left:45px;
+  font-size:13px;
+  font-weight:600;
+  height:38px;
+  background:#fcfdf9
+}
+.amount-check {
+  font-size:9px;
+  display:flex;
+  gap:5px;
+  align-items:center;
+  min-height:16px;
+  margin:-3px 0 15px;
+  color:#648556;
+  line-height:1.5
+}
+.amount-check svg {
+  width:12px;
+  height:12px
+}
+.amount-check.warning {
+  color:#9b6432
+}
+.amount-check.neutral {
+  color:#86917d
+}
+.notes-field {
+  margin-bottom:11px
+}
+.review-check-wrap {
+  border-top:1px solid #e7ebdf;
+  padding-top:12px;
+  margin-top:11px
+}
+.review-check {
+  display:flex;
+  align-items:flex-start;
+  gap:7px;
+  color:#63785a;
+  font-size:10px;
+  line-height:1.5;
+  cursor:pointer
+}
+.review-check input {
+  margin:1px 0 0;
+  accent-color:var(--green);
+  width:13px;
+  height:13px;
+  flex-shrink:0
+}
+.approve-button {
+  margin-top:12px;
+  width:100%;
+  font-size:11px;
+  min-height:36px;
+  padding:8px
+}
+.approve-button:disabled {
+  background:#e8f0e0;
+  color:#4c7440;
+  border-color:#dce7d2;
+  box-shadow:none
+}
+.approval-hint {
+  text-align:center;
+  font-size:8px;
+  color:#809175;
+  margin-top:7px;
+  line-height:1.6
+}
+.form-errors {
+  font-size:10px;
+  padding:9px 10px;
+  border:1px solid #e9c9b9;
+  background:#fff5ee;
+  color:#945437;
+  border-radius:5px;
+  line-height:1.7;
+  margin-bottom:8px
+}
+.form-errors ul {
+  padding-left:15px;
+  margin:0
+}
+.export-bar {
+  margin-top:18px;
+  border:1px solid #d9e2d0;
+  border-radius:8px;
+  background:#f0f4e9;
+  padding:15px 19px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px
+}
+.export-copy {
+  display:flex;
+  align-items:center;
+  gap:12px
+}
+.export-icon {
+  border:1px solid #cddcbe;
+  background:#e7efdc;
+  border-radius:7px;
+  width:34px;
+  height:37px;
+  color:#5c7d4f;
+  flex-shrink:0
+}
+.export-copy strong {
+  font-size:12px;
+  font-weight:550
+}
+.export-copy p {
+  font-size:10px;
+  color:#78896e;
+  margin-top:2px
+}
+.export-button {
+  background:#1e4c32;
+  color:white;
+  font-size:11px;
+  min-height:37px
+}
+.export-button:hover {
+  background:#163f27
+}
+.export-button:disabled {
+  background:#e0e6d7;
+  color:#77896b
+}
+.export-button span:last-child {
+  border-left:1px solid #ffffff30;
+  padding-left:10px;
+  margin-left:4px
+}
+.page-footer {
+  display:flex;
+  justify-content:space-between;
+  gap:15px;
+  margin-top:19px;
+  color:#829177;
+  font-size:9px
+}
+.empty-panel {
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  text-align:center;
+  padding:40px 15px;
+  background:radial-gradient(ellipse at center,#f1f6e9 0,transparent 60%)
+}
+.empty-icon {
+  width:66px;
+  height:77px;
+  border:1px solid #d7e2cb;
+  border-radius:12px;
+  background:#f9fcf5;
+  color:#9caf83;
+  margin-bottom:23px;
+  box-shadow:0 5px 10px #26392805
+}
+.empty-icon svg {
+  width:32px;
+  height:32px
+}
+.empty-panel h2 {
+  font-family:Georgia,serif;
+  font-weight:400;
+  font-size:30px;
+  margin:9px 0 14px
+}
+.empty-panel>p:not(.eyebrow) {
+  font-size:12px;
+  color:#7a8a70;
+  margin-bottom:24px;
+  line-height:1.8
+}
+.toast {
+  position:fixed;
+  bottom:24px;
+  left:50%;
+  transform:translateX(-50%);
+  background:#193e29;
+  color:#f5f9ee;
+  border:1px solid #4b6c45;
+  box-shadow:0 8px 35px #152b2330;
+  max-width:calc(100vw - 30px);
+  width:max-content;
+  border-radius:8px;
+  padding:13px 20px;
+  font-size:12px;
+  z-index:10
+}
+.toast.error {
+  background:#6e4127;
+  border-color:#946348
+}
+dialog {
+  border:1px solid #d9e3d0;
+  background:#fcfdf8;
+  color:var(--ink);
+  border-radius:14px;
+  width:min(510px,calc(100vw - 32px));
+  padding:25px;
+  box-shadow:0 20px 80px #182d2230;
+  max-height:calc(100vh - 36px);
+  overflow-y:auto
+}
+dialog::backdrop {
+  background:#112a2266;
+  backdrop-filter:blur(3px)
+}
+.dialog-top {
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  margin-bottom:10px
+}
+dialog h2 {
+  font-size:24px;
+  font-weight:550;
+  letter-spacing:-.6px;
+  line-height:1.3
+}
+.guide-steps {
+  margin:22px 0;
+  padding:0;
+  counter-reset:step;
+  list-style:none;
+  display:grid;
+  gap:19px
+}
+.guide-steps li {
+  padding-left:39px;
+  position:relative;
+  counter-increment:step
+}
+.guide-steps li:before {
+  content:counter(step);
+  position:absolute;
+  left:0;
+  top:0;
+  width:25px;
+  height:25px;
+  border-radius:50%;
+  background:#e6efdc;
+  color:#527744;
+  text-align:center;
+  padding-top:2px;
+  font-size:12px
+}
+.guide-steps strong {
+  font-size:13px;
+  font-weight:600
+}
+.guide-steps p {
+  font-size:12px;
+  color:#6c7e62;
+  margin-top:4px;
+  line-height:1.75
+}
+.guide-footnote {
+  padding:13px;
+  background:#eef2e7;
+  border-radius:7px;
+  font-size:11px;
+  line-height:1.8;
+  color:#6b7c60;
+  margin-bottom:20px
+}
+.dialog-actions {
+  display:flex;
+  justify-content:flex-end;
+  gap:8px;
+  margin-top:24px
+}
+#remove-description {
+  font-size:13px;
+  color:var(--muted);
+  margin-top:12px
+}
+.danger {
+  background:#945b3e;
+  color:white
+}
+.source-error {
+  font-size:12px;
+  line-height:1.8;
+  text-align:center;
+  padding:25px 10px;
+  color:#67775e
+}
+.file-missing {
+  min-height:350px;
+  display:flex;
+  align-items:center;
+  justify-content:center
+}
+.review-panel>.review-heading {
+  background:#fefefb
+}
+@media(min-width:1550px) {
+  .page {
+    padding:40px
+  }
+  .workbench {
+    grid-template-columns:250px minmax(0,1fr)
+  }
+  .review-columns {
+    grid-template-columns:minmax(320px,1fr) minmax(360px,1fr)
+  }
+  .fields-panel {
+    padding-left:26px;
+    padding-right:26px
+  }
+  .source-canvas {
+    margin:0 22px;
+    padding:26px
+  }
+  .paper-invoice {
+    padding:30px 24px;
+    min-height:410px
+  }
+  .paper-table {
+    font-size:10px
+  }
+  .paper-table th,.paper-meta,.paper-address,.paper-total-line {
+    font-size:9px
+  }
+  .paper-supplier {
+    font-size:12px
+  }
+}
+@media(max-width:1190px) {
+  .app-shell {
+    grid-template-columns:172px minmax(0,1fr)
+  }
+  .sidebar {
+    padding-left:12px;
+    padding-right:12px
+  }
+  .nav-item {
+    font-size:10px;
+    gap:7px
+  }
+  .page {
+    padding:26px 20px 20px
+  }
+  .workbench {
+    grid-template-columns:185px minmax(0,1fr)
+  }
+  .review-columns {
+    grid-template-columns:minmax(210px,.9fr) minmax(260px,1fr)
+  }
+  .heading-actions {
+    gap:6px
+  }
+  .heading-actions .button {
+    font-size:10px;
+    padding:9px 11px
+  }
+  h1 {
+    font-size:29px
+  }
+  .drop-zone small {
+    font-size:8px
+  }
+  .source-canvas {
+    padding:15px 8px;
+    margin:0 10px
+  }
+  .paper-invoice {
+    padding:18px 11px
+  }
+  .inbox-title {
+    padding-left:12px;
+    padding-right:12px
+  }
+  .small-muted {
+    font-size:9px
+  }
+  .filter-buttons {
+    padding-left:7px;
+    padding-right:7px
+  }
+  .filter-buttons button {
+    padding:6px 7px
+  }
+  .fields-panel {
+    padding-left:13px;
+    padding-right:13px
+  }
+  .review-heading {
+    padding-left:14px;
+    padding-right:14px
+  }
+  .prototype-note {
+    font-size:10px
+  }
+}
+@media(max-width:1050px) {
+  .app-shell {
+    grid-template-columns:150px minmax(0,1fr)
+  }
+  .sidebar {
+    padding-left:9px;
+    padding-right:9px
+  }
+  .brand {
+    font-size:27px;
+    padding-left:4px
+  }
+  .brand-symbol {
+    width:26px;
+    height:28px
+  }
+  .workspace-label {
+    font-size:8px;
+    margin-left:5px
+  }
+  .workspace-name {
+    padding:0 4px;
+    font-size:11px
+  }
+  .workspace-avatar {
+    padding:5px 9px
+  }
+  .sidebar-note {
+    margin-left:6px;
+    margin-right:6px
+  }
+  .sidebar-note h3 {
+    font-size:19px
+  }
+  .sidebar-note p {
+    font-size:11px
+  }
+  .nav-item {
+    padding:11px 7px;
+    font-size:9px
+  }
+  .page-heading {
+    align-items:flex-start;
+    flex-direction:column;
+    gap:16px
+  }
+  .heading-actions {
+    align-self:flex-end;
+    margin-top:-48px
+  }
+  .heading-actions .button {
+    font-size:10px;
+    padding:8px 9px
+  }
+  .heading-description {
+    font-size:11px
+  }
+  h1 {
+    font-size:26px
+  }
+  .workbench {
+    grid-template-columns:180px minmax(0,1fr)
+  }
+  .review-columns {
+    grid-template-columns:minmax(0,1fr)
+  }
+  .source-panel {
+    border-right:0;
+    border-bottom:1px solid var(--border)
+  }
+  .source-canvas {
+    min-height:320px;
+    padding:20px;
+    max-height:480px;
+    overflow-y:auto
+  }
+  .paper-invoice {
+    max-width:320px;
+    min-height:360px;
+    padding:22px
+  }
+  .source-caption {
+    padding-bottom:12px
+  }
+  .fields-panel {
+    padding:0 22px 20px
+  }
+  .fields-description,.field {
+    font-size:11px
+  }
+  .field input,.field select {
+    font-size:12px;
+    height:38px
+  }
+  .review-check {
+    font-size:11px
+  }
+  .approval-hint {
+    font-size:10px
+  }
+  .amount-check {
+    font-size:10px
+  }
+  .inbox-panel {
+    align-self:stretch
+  }
+  .invoice-list {
+    max-height:none
+  }
+  .page-footer {
+    flex-direction:column;
+    gap:4px
+  }
+  .prototype-note button {
+    display:none
+  }
+  .source-pdf {
+    height:380px
+  }
+}
+@media(max-width:760px) {
+  .app-shell {
+    display:block
+  }
+  .sidebar {
+    position:static;
+    height:auto;
+    min-height:0;
+    padding:14px 18px;
+    flex-direction:row;
+    align-items:center;
+    justify-content:space-between;
+    gap:20px
+  }
+  .brand {
+    font-size:25px
+  }
+  .brand-symbol {
+    height:27px;
+    width:25px;
+    font-size:20px
+  }
+  .workspace-label,.workspace-name,.sidebar-note,.sidebar-bottom,.sidebar nav .active {
+    display:none
+  }
+  .sidebar nav {
+    margin:0
+  }
+  .sidebar nav button {
+    font-size:11px;
+    padding:6px
+  }
+  .topbar {
+    height:47px;
+    padding:0 20px
+  }
+  .page {
+    padding:23px 18px
+  }
+  .page-heading {
+    margin-bottom:20px;
+    gap:15px
+  }
+  .heading-actions {
+    margin:0;
+    align-self:flex-start;
+    gap:8px
+  }
+  .heading-actions .button {
+    font-size:12px;
+    padding:10px 14px
+  }
+  .heading-description {
+    font-size:12px
+  }
+  h1 {
+    font-size:31px
+  }
+  .prototype-note {
+    font-size:11px;
+    align-items:flex-start;
+    padding:12px;
+    gap:8px
+  }
+  .note-icon {
+    margin-top:2px
+  }
+  .workbench {
+    display:block
+  }
+  .inbox-panel {
+    border-right:0;
+    border-bottom:1px solid var(--border)
+  }
+  .inbox-title {
+    padding:14px 16px
+  }
+  .small-muted {
+    font-size:11px
+  }
+  .drop-zone {
+    padding:12px;
+    gap:3px;
+    display:none
+  }
+  .filter-buttons {
+    border:0;
+    padding:0 13px 8px
+  }
+  .filter-buttons button {
+    font-size:11px;
+    padding:7px 12px
+  }
+  .invoice-list {
+    display:grid;
+    grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+    max-height:230px;
+    padding:0 10px 11px;
+    overflow-y:auto
+  }
+  .invoice-item {
+    padding:10px
+  }
+  .invoice-item-name {
+    font-size:12px
+  }
+  .invoice-item-amount {
+    font-size:12px
+  }
+  .mini-status {
+    font-size:10px
+  }
+  .inbox-footer {
+    display:none
+  }
+  .review-heading {
+    padding:15px 14px
+  }
+  .selected-title h2 {
+    font-size:13px
+  }
+  .review-heading-right {
+    gap:4px
+  }
+  .status-badge {
+    font-size:9px;
+    padding:4px 6px
+  }
+  .review-columns {
+    display:grid;
+    grid-template-columns:minmax(0,1fr)
+  }
+  .source-canvas {
+    margin:0 17px;
+    max-height:none
+  }
+  .source-pdf {
+    height:400px
+  }
+  .panel-label {
+    padding-left:20px;
+    padding-right:20px
+  }
+  .panel-label h3 {
+    font-size:12px
+  }
+  .source-panel .panel-label>span {
+    font-size:9px
+  }
+  .paper-invoice {
+    max-width:365px;
+    font-size:11px;
+    padding:27px 23px
+  }
+  .paper-supplier {
+    font-size:12px
+  }
+  .paper-address,.paper-meta,.paper-total-line {
+    font-size:10px
+  }
+  .paper-table {
+    font-size:10px
+  }
+  .paper-table th {
+    font-size:9px
+  }
+  .paper-title {
+    font-size:15px
+  }
+  .paper-grand-total {
+    font-size:12px
+  }
+  .paper-stamp {
+    font-size:8px
+  }
+  .fields-panel {
+    padding-left:20px;
+    padding-right:20px
+  }
+  .field input,.field select {
+    font-size:16px;
+    height:42px
+  }
+  .field {
+    font-size:12px
+  }
+  .fields-description {
+    font-size:12px
+  }
+  .field input::placeholder {
+    font-size:12px
+  }
+  .total-input-wrap>input {
+    height:43px;
+    font-size:17px
+  }
+  .total-input-wrap>span {
+    top:11px;
+    font-size:12px
+  }
+  .review-check {
+    font-size:12px
+  }
+  .review-check input {
+    width:17px;
+    height:17px;
+    margin-top:0
+  }
+  .approve-button {
+    font-size:13px;
+    padding:11px;
+    min-height:42px
+  }
+  .amount-check {
+    font-size:11px;
+    min-height:20px
+  }
+  .approval-hint {
+    font-size:10px
+  }
+  .export-bar {
+    padding:15px;
+    flex-wrap:wrap
+  }
+  .export-copy strong {
+    font-size:12px
+  }
+  .export-copy p {
+    font-size:11px
+  }
+  .export-button {
+    margin-left:auto;
+    font-size:12px;
+    min-height:41px
+  }
+  .page-footer {
+    font-size:10px
+  }
+  .prototype-note strong {
+    display:block
+  }
+  .empty-panel {
+    min-height:360px
+  }
+  .toast {
+    bottom:15px;
+    font-size:12px
+  }
+  .form-errors {
+    font-size:12px
+  }
+  .section-divider {
+    font-size:10px
+  }
+  .source-caption {
+    font-size:10px
+  }
+}
+@media(prefers-reduced-motion:reduce) {
+  * {
+    transition:none!important;
+    scroll-behavior:auto!important
+  }
+}
+.invoice-item-foot {
+  flex-wrap:wrap
+}
+.invoice-item-amount {
+  white-space:normal;
+  overflow-wrap:anywhere
+}
+.invoice-item-head>span:last-child {
+  min-width:0
+}
+.review-check-wrap {
+  padding-bottom:2px
+}
+.icon-button {
+  min-width:30px;
+  min-height:32px
+}
+@media(pointer:coarse) {
+  .icon-button,.guide-icon,.filter-buttons button {
+    min-width:44px;
+    min-height:44px
+  }
+  .review-check {
+    padding:7px 0
+  }
+  .sidebar nav button {
+    min-height:44px
+  }
+}
+
+/* AI connection and review evidence */
+.ai-connection { display:flex; justify-content:space-between; align-items:center; gap:16px; margin:-8px 0 20px; padding:13px 15px; border:1px solid #dce5d5; border-radius:7px; background:#fcfdf8; }
+.ai-connection strong { font-size:12px; font-weight:600; }
+.ai-connection p { font-size:11px; color:#6d8066; line-height:1.65; margin-top:3px; }
+.ai-connection .button { flex-shrink:0; }
+.ai-actions { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+.ai-actions .button { font-size:11px; flex-shrink:0; }
+.ai-actions .button:disabled { opacity:.65; }
+.ai-actions>span { font-size:10px; line-height:1.6; color:#6c8064; }
+.ai-disclosure { font-size:10px; color:#77836e; line-height:1.7; margin:0 0 15px; }
+.ai-feedback { margin-bottom:13px; padding:10px 11px; border:1px solid #d7e4ca; border-radius:5px; background:#f0f5e9; color:#536d44; font-size:11px; line-height:1.7; }
+.ai-feedback.error { background:#fff5ed; border-color:#ead2bd; color:#89552e; }
+.ai-feedback ul { padding-left:14px; margin:0; }
+.ai-feedback li+li { margin-top:4px; }
+.ai-insights { border-top:1px solid #dce5d5; margin-top:15px; padding:12px 0 0; font-size:11px; color:#5a7150; }
+.ai-insights summary { font-size:11px; font-weight:600; cursor:pointer; }
+.ai-insights h4 { margin:15px 0 6px; font-size:11px; color:#385530; }
+.ai-insights ul { padding-left:17px; }
+.ai-insights li { margin-bottom:6px; }
+.ai-insights p { line-height:1.65; }
+.ai-candidates>div { display:flex; justify-content:space-between; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid #e3eadd; }
+.ai-candidates>div>span { min-width:0; overflow-wrap:anywhere; }
+.ai-candidates strong { display:block; font-size:10px; font-weight:500; }
+.ai-candidates>div>span>span { color:#314f27; font-size:12px; }
+.ai-candidates .button { font-size:10px; min-height:30px; padding:5px 8px; flex-shrink:0; }
+.ai-line-note { font-size:10px; color:#7c8871; margin-bottom:6px; }
+.ai-line-items>div { padding:9px 0; border-bottom:1px solid #e6ecdf; }
+.ai-line-items strong { font-weight:500; overflow-wrap:anywhere; }
+.ai-line-items p { font-size:10px; color:#829075; margin-top:4px; }
+@media(max-width:760px) {
+  .ai-connection { align-items:flex-start; flex-direction:column; gap:10px; }
+  .ai-actions { flex-wrap:wrap; }
+  .ai-actions>span,.ai-disclosure,.ai-insights summary,.ai-insights h4,.ai-line-note,.ai-line-items p { font-size:11px; }
+}
+
+</style>
+<style>
+.site-preview-banner{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:#e0eee4;color:#183e2b;border-bottom:1px solid #bdcfc1;padding:12px 24px;font-size:13px;line-height:1.5}
+.site-preview-banner strong{font-weight:650}
+.site-preview-banner nav{display:flex;gap:20px;flex-wrap:wrap}
+.site-preview-banner a{text-decoration:underline;text-underline-offset:3px}
+@media(max-width:640px){.site-preview-banner{padding:12px 16px;font-size:12px}}
+</style>
+<script>window.RASAM_STATIC_PREVIEW = true;</script>
+</head>
+<body>
+  <div class="site-preview-banner" role="region" aria-label="Preview information">
+    <strong>Workbench preview · AI reading runs in the local app</strong>
+    <nav aria-label="Preview navigation"><a href="./index.html">Back to Rasam</a><a href="https://github.com/20SHA07/Rasam/tree/main/workbench">Get the local app</a></nav>
+  </div>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="#" aria-label="Rasam home"><span class="brand-symbol" aria-hidden="true">r.</span><span>rasam<span class="brand-period">.</span></span></a>
+      <div class="workspace-label">YOUR WORKSPACE</div>
+      <div class="workspace-name"><span class="workspace-avatar">R</span><div>My workspace<small>Getting started</small></div></div>
+      <nav aria-label="Main navigation">
+        <a class="nav-item active" href="#workbench" aria-current="page"><span data-icon="inbox"></span>Invoice workbench</a>
+        <button class="nav-item" id="guide-button"><span data-icon="book"></span>Quick guide</button>
+      </nav>
+      <div class="sidebar-note"><span class="note-leaf" data-icon="leaf"></span><h3>Small steps.<br>Less paperwork.</h3><p>One invoice is all it takes to try your first workflow.</p><button class="sidebar-link" id="sidebar-sample">Load an example <span aria-hidden="true">↗</span></button></div>
+      <div class="sidebar-bottom"><span class="status-dot"></span> Local prototype <span class="version">v0.2</span></div>
+    </aside>
+
+    <main id="workbench">
+      <header class="topbar"><div class="breadcrumb">Workspace <span>/</span> <strong>Invoice workbench</strong></div><button class="guide-icon" id="top-guide" aria-label="Open quick guide">?</button></header>
+      <div class="page">
+        <div class="page-heading"><div><p class="eyebrow">FROM INBOX TO EXCEL</p><h1>A little less paperwork.</h1><p class="heading-description">Review the details. Keep your books moving.</p></div><div class="heading-actions"><button class="button secondary" id="sample-button"><span data-icon="sparkles"></span>Try a sample</button><button class="button primary" id="upload-button"><span data-icon="plus"></span>Upload invoice</button></div></div>
+
+        <div class="prototype-note"><span class="note-icon" data-icon="info"></span><p><strong>Read. Review. Export.</strong> AI drafts the details from your invoice. You check the source and approve every entry.</p><button id="note-guide">How to try it <span aria-hidden="true">↗</span></button></div>
+        <div class="ai-connection"><div><strong id="ai-connection-title">Checking AI connection…</strong><p id="ai-connection-detail">Samples and manual entry work without a connection.</p></div><button type="button" class="button secondary" id="ai-check-connection">Check connection</button></div>
+
+        <section class="workbench" aria-label="Invoice review workspace">
+          <aside class="inbox-panel">
+            <div class="inbox-title"><h2>Inbox <span id="inbox-count" class="count">1</span></h2><span class="small-muted">This session</span></div>
+            <button id="drop-zone" class="drop-zone"><span class="upload-circle" data-icon="upload"></span><strong>Drop your invoices here</strong><span>or click to browse</span><small>PDF, JPG, PNG, WebP · up to 20 MB</small></button>
+            <div class="filter-buttons" role="group" aria-label="Filter invoices"><button data-filter="all" aria-pressed="true">All</button><button data-filter="review" aria-pressed="false">To review</button><button data-filter="approved" aria-pressed="false">Approved</button></div>
+            <div id="invoice-list" class="invoice-list"></div>
+            <div class="inbox-footer"><span data-icon="lock"></span><p>AI reads only files you choose.<br>Export before closing or refreshing.</p></div>
+          </aside>
+
+          <section class="review-panel" id="review-panel" aria-label="Selected invoice">
+            <header class="review-heading"><div class="selected-title"><span class="document-icon" data-icon="file"></span><div><h2 id="selected-supplier">Al Noor Stationery LLC</h2><p id="selected-meta">INV-2026-0481 · Sample invoice</p></div></div><div class="review-heading-right"><span class="status-badge" id="selected-status">Needs review</span><button class="icon-button" id="remove-button" aria-label="Remove selected invoice"><span data-icon="trash"></span></button></div></header>
+            <div class="review-columns">
+              <section class="source-panel"><div class="panel-label"><h3>Original invoice</h3><span id="source-type">SAMPLE</span></div><div class="source-canvas" id="source-preview"></div><div class="source-caption" id="source-caption">Fictional example · for trying the workflow</div></section>
+
+              <section class="fields-panel"><div class="panel-label"><h3>Invoice details</h3><span class="editable-label"><span data-icon="pencil"></span>Editable</span></div><p class="fields-description" id="entry-description">Example values are filled in. Compare them with the invoice.</p>
+                <div class="ai-actions"><button type="button" class="button secondary" id="read-ai-button" disabled><span data-icon="sparkles"></span>Read with AI</button><span id="ai-read-state" aria-live="polite">Upload your own invoice to use AI.</span></div>
+                <p class="ai-disclosure">Read with AI sends this file to OpenAI. API usage charges apply. Uploading alone does not send it.</p>
+                <div id="ai-feedback" class="ai-feedback" role="status" aria-live="polite" hidden></div>
+                <form id="invoice-form" novalidate>
+                  <label class="field full">Supplier name <span class="required">*</span><input id="supplier" name="supplier" type="text" autocomplete="off" maxlength="200" required dir="auto"></label>
+                  <div class="two-fields"><label class="field">Invoice number <span class="required">*</span><input id="invoiceNumber" name="invoiceNumber" type="text" autocomplete="off" maxlength="100" required></label><label class="field">Invoice date <span class="required">*</span><input id="date" name="date" type="date" required></label></div>
+                  <label class="field currency-field">Currency <span class="required">*</span><select id="currency" name="currency" required><option value="">Choose currency</option><option value="SAR">SAR · Saudi riyal</option><option value="AED">AED · UAE dirham</option><option value="USD">USD · US dollar</option><option value="EUR">EUR · Euro</option><option value="GBP">GBP · British pound</option></select></label>
+                  <div class="amount-section"><div class="section-divider">AMOUNTS ON THE INVOICE</div><div class="two-fields"><label class="field">Net amount <span class="required">*</span><input id="net" name="net" type="number" min="0" max="999999999999" step="0.01" inputmode="decimal" required></label><label class="field">Tax amount <span class="required">*</span><input id="vat" name="vat" type="number" min="0" max="999999999999" step="0.01" inputmode="decimal" required></label></div><label class="field">Invoice total <span class="required">*</span><div class="total-input-wrap"><span id="currency-prefix">SAR</span><input id="total" name="total" type="number" min="0.01" max="999999999999" step="0.01" inputmode="decimal" required></div></label><div id="amount-check" class="amount-check" aria-live="polite"></div></div>
+                  <label class="field notes-field">Notes <span class="optional">Optional</span><input id="notes" name="notes" type="text" autocomplete="off" maxlength="1000" placeholder="Add a reference or a note for later"></label>
+                  <div id="form-errors" class="form-errors" role="alert" hidden></div>
+                  <div class="review-check-wrap"><label class="review-check"><input id="review-confirm" type="checkbox"><span>I checked these details against the invoice.</span></label></div>
+                  <button class="button primary approve-button" id="approve-button" type="submit"><span data-icon="check"></span>Approve invoice</button>
+                  <p id="approval-hint" class="approval-hint">Approval adds this invoice to your Excel export.</p>
+                </form>
+                <details id="ai-insights" class="ai-insights" hidden><summary>AI suggestions and extracted lines</summary><div id="ai-insight-body"></div></details>
+              </section>
+            </div>
+          </section>
+          <section id="empty-panel" class="empty-panel" hidden><span class="empty-icon" data-icon="file"></span><p class="eyebrow">YOUR NEXT SMALL STEP</p><h2>Start with one invoice.</h2><p>Upload a PDF or image, or try a fictional example<br>to see the review and export flow.</p><button class="button primary" id="empty-sample">Try a sample invoice <span aria-hidden="true">↗</span></button></section>
+        </section>
+
+        <section class="export-bar" aria-label="Excel export"><div class="export-copy"><span class="export-icon" data-icon="sheet"></span><div><strong id="export-title">Your Excel file starts here.</strong><p id="export-description">Approve an invoice to include it in your export.</p></div></div><button class="button export-button" id="export-button" disabled><span data-icon="download"></span>Export Excel <span id="export-count">0</span></button></section>
+        <footer class="page-footer"><span>Made for the work between invoice and spreadsheet.</span><span>Manual mode stays local · AI uses OpenAI when you click Read</span></footer>
+      </div>
+    </main>
+  </div>
+  <input id="file-input" type="file" accept="application/pdf,image/jpeg,image/png,image/webp,.pdf,.jpg,.jpeg,.png,.webp" multiple hidden>
+  <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
+  <dialog id="guide-dialog" aria-labelledby="guide-title"><div class="dialog-top"><span class="eyebrow">WELCOME TO RASAM</span><button class="icon-button" id="close-guide" aria-label="Close quick guide"><span data-icon="close"></span></button></div><h2 id="guide-title">Your first invoice, step by step.</h2><ol class="guide-steps"><li><strong>Try the example</strong><p>A fictional invoice is already here. Change a detail and watch the totals check respond.</p></li><li><strong>Review and approve</strong><p>Check the values against the source, tick the review box, then approve. Editing an approved invoice sends it back for review.</p></li><li><strong>Export to Excel</strong><p>Download a real .xlsx file containing only approved invoices. Sample rows are labeled so you can tell them apart.</p></li><li><strong>Try your own file</strong><p>Start the localhost launcher and add your OpenAI API key in its hidden terminal prompt. Upload a PDF or image, then choose Read with AI. Review the draft and any warnings before approval. Account coding and ERP posting are not connected.</p></li></ol><div class="guide-footnote">This prototype checks that net + tax equals total. It does not verify tax rules or produce a posted journal. Your session clears when you refresh or close the tab.</div><button class="button primary" id="guide-done">Let’s try it <span aria-hidden="true">→</span></button></dialog>
+  <dialog id="remove-dialog" aria-labelledby="remove-title"><div class="dialog-top"><span class="eyebrow">REMOVE INVOICE</span><button class="icon-button" id="cancel-remove-icon" aria-label="Cancel removal"><span data-icon="close"></span></button></div><h2 id="remove-title">Remove this invoice?</h2><p id="remove-description">Its details will be removed from this session.</p><div class="dialog-actions"><button class="button secondary" id="cancel-remove">Keep invoice</button><button class="button danger" id="confirm-remove">Remove invoice</button></div></dialog>
+  <script>
+/* Rasam XLSX export. No network calls or third-party runtime dependencies. */
+(function (global) {
+  'use strict';
+
+  var encoder = new TextEncoder();
+  var NS = 'http://schemas.openxmlformats.org/spreadsheetml/2006/main';
+  var XML = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+  var CRC_TABLE = new Uint32Array(256);
+  for (var n = 0; n < 256; n += 1) {
+    var value = n;
+    for (var bit = 0; bit < 8; bit += 1) value = value & 1 ? 0xEDB88320 ^ (value >>> 1) : value >>> 1;
+    CRC_TABLE[n] = value >>> 0;
+  }
+
+  function clean(value) {
+    // Excel limits a cell to 32,767 UTF-16 code units. Replace malformed Unicode
+    // and disallowed XML 1.0 code points without changing valid Arabic text.
+    return Array.from(String(value == null ? '' : value)).filter(function (character) {
+      var cp = character.codePointAt(0);
+      return cp === 9 || cp === 10 || cp === 13 ||
+        (cp >= 32 && cp <= 0xD7FF) || (cp >= 0xE000 && cp <= 0xFFFD) ||
+        (cp >= 0x10000 && cp <= 0x10FFFF);
+    }).join('').slice(0, 32767).replace(/[\uD800-\uDBFF]$/, '');
+  }
+
+  function escapeXml(value) {
+    return clean(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+  }
+
+  function textCell(reference, value, style) {
+    // inlineStr is deliberate: even values beginning =, +, -, or @ are text.
+    return '<c r="' + reference + '" t="inlineStr" s="' + (style || 0) + '"><is><t xml:space="preserve">' + escapeXml(value) + '</t></is></c>';
+  }
+
+  function numberCell(reference, value, style) {
+    if (value === null || value === undefined || value === '') return textCell(reference, '', style);
+    var number = Number(value);
+    if (!Number.isFinite(number)) return textCell(reference, value, style);
+    return '<c r="' + reference + '" s="' + style + '"><v>' + number + '</v></c>';
+  }
+
+  function excelDate(value, isTimestamp) {
+    if (!value) return null;
+    var timestamp;
+    if (isTimestamp) {
+      timestamp = Date.parse(value);
+    } else {
+      var parts = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value));
+      if (!parts) return null;
+      var year = Number(parts[1]);
+      var month = Number(parts[2]);
+      var day = Number(parts[3]);
+      timestamp = Date.UTC(year, month - 1, day);
+      var date = new Date(timestamp);
+      if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return null;
+    }
+    if (!Number.isFinite(timestamp)) return null;
+    var serial = (timestamp - Date.UTC(1899, 11, 30)) / 86400000;
+    // Workbooks use the standard Excel 1900 date system, including its leap bug.
+    if (serial > 0 && serial < 61) serial -= 1;
+    return serial >= 0 && serial < 2958466 ? serial : null;
+  }
+
+  function dateCell(reference, value, isTimestamp) {
+    var serial = excelDate(value, isTimestamp);
+    var style = isTimestamp ? 6 : 5;
+    return serial === null ? textCell(reference, value, style) : numberCell(reference, serial, style);
+  }
+
+  function crc32(bytes) {
+    var crc = 0xFFFFFFFF;
+    for (var i = 0; i < bytes.length; i += 1) crc = CRC_TABLE[(crc ^ bytes[i]) & 0xFF] ^ (crc >>> 8);
+    return (crc ^ 0xFFFFFFFF) >>> 0;
+  }
+
+  function concat(chunks) {
+    var length = chunks.reduce(function (sum, chunk) { return sum + chunk.length; }, 0);
+    var result = new Uint8Array(length);
+    var offset = 0;
+    chunks.forEach(function (chunk) { result.set(chunk, offset); offset += chunk.length; });
+    return result;
+  }
+
+  function zip(files) {
+    var localParts = [];
+    var centralParts = [];
+    var offset = 0;
+    files.forEach(function (file) {
+      var name = encoder.encode(file.name);
+      var data = encoder.encode(file.content);
+      var crc = crc32(data);
+      var local = new Uint8Array(30 + name.length);
+      var view = new DataView(local.buffer);
+      view.setUint32(0, 0x04034B50, true);
+      view.setUint16(4, 20, true);
+      view.setUint16(6, 0x0800, true); // UTF-8 paths; uncompressed ZIP entries.
+      view.setUint16(12, 0x5021, true); // 2020-01-01, deterministic archive date.
+      view.setUint32(14, crc, true);
+      view.setUint32(18, data.length, true);
+      view.setUint32(22, data.length, true);
+      view.setUint16(26, name.length, true);
+      local.set(name, 30);
+      localParts.push(local, data);
+
+      var central = new Uint8Array(46 + name.length);
+      view = new DataView(central.buffer);
+      view.setUint32(0, 0x02014B50, true);
+      view.setUint16(4, 20, true);
+      view.setUint16(6, 20, true);
+      view.setUint16(8, 0x0800, true);
+      view.setUint16(14, 0x5021, true);
+      view.setUint32(16, crc, true);
+      view.setUint32(20, data.length, true);
+      view.setUint32(24, data.length, true);
+      view.setUint16(28, name.length, true);
+      view.setUint32(42, offset, true);
+      central.set(name, 46);
+      centralParts.push(central);
+      offset += local.length + data.length;
+    });
+    var centralBytes = concat(centralParts);
+    var end = new Uint8Array(22);
+    var endView = new DataView(end.buffer);
+    endView.setUint32(0, 0x06054B50, true);
+    endView.setUint16(8, files.length, true);
+    endView.setUint16(10, files.length, true);
+    endView.setUint32(12, centralBytes.length, true);
+    endView.setUint32(16, offset, true);
+    return concat(localParts.concat([centralBytes, end]));
+  }
+
+  function sheet(invoices) {
+    var headers = ['Invoice date', 'Supplier', 'Invoice number', 'Currency', 'Net', 'VAT', 'Total', 'Data origin', 'Source file', 'Approved at (UTC)', 'Notes', 'Record ID'];
+    var widths = [16, 34, 24, 13, 17, 17, 17, 19, 32, 25, 48, 30];
+    var rows = [
+      '<row r="1" ht="32" customHeight="1">' + textCell('A1', 'Rasam | Approved invoices', 1) + '</row>',
+      '<row r="2" ht="32" customHeight="1">' + textCell('A2', 'Reviewed invoice data, not a posted journal. Sample rows contain fictional data. Amounts are the approved values entered in Rasam.', 2) + '</row>',
+      '<row r="4" ht="26" customHeight="1">' + headers.map(function (header, index) { return textCell(String.fromCharCode(65 + index) + '4', header, 3); }).join('') + '</row>'
+    ];
+    invoices.forEach(function (invoice, index) {
+      var row = index + 5;
+      var origin = invoice.mode === 'sample' ? 'Sample' : invoice.mode === 'ai' ? 'AI-assisted, human reviewed' : invoice.mode === 'manual' ? 'Manual entry' : 'Unspecified';
+      var cells = [
+        dateCell('A' + row, invoice.date, false),
+        textCell('B' + row, invoice.supplier),
+        textCell('C' + row, invoice.invoiceNumber),
+        textCell('D' + row, invoice.currency),
+        numberCell('E' + row, invoice.net, 4),
+        numberCell('F' + row, invoice.vat, 4),
+        numberCell('G' + row, invoice.total, 4),
+        textCell('H' + row, origin),
+        textCell('I' + row, invoice.sourceFile),
+        dateCell('J' + row, invoice.reviewedAt, true),
+        textCell('K' + row, invoice.notes),
+        textCell('L' + row, invoice.id)
+      ];
+      rows.push('<row r="' + row + '">' + cells.join('') + '</row>');
+    });
+    var lastRow = Math.max(4, invoices.length + 4);
+    return XML + '<worksheet xmlns="' + NS + '">' +
+      '<dimension ref="A1:L' + lastRow + '"/>' +
+      '<sheetViews><sheetView workbookViewId="0" showGridLines="0"><pane ySplit="4" topLeftCell="A5" activePane="bottomLeft" state="frozen"/><selection pane="bottomLeft" activeCell="A5" sqref="A5"/></sheetView></sheetViews>' +
+      '<sheetFormatPr defaultRowHeight="22"/>' +
+      '<cols>' + widths.map(function (width, index) { return '<col min="' + (index + 1) + '" max="' + (index + 1) + '" width="' + width + '" customWidth="1"/>'; }).join('') + '</cols>' +
+      '<sheetData>' + rows.join('') + '</sheetData>' +
+      '<autoFilter ref="A4:L' + lastRow + '"/>' +
+      '<mergeCells count="2"><mergeCell ref="A1:L1"/><mergeCell ref="A2:L2"/></mergeCells>' +
+      '<pageMargins left="0.3" right="0.3" top="0.5" bottom="0.5" header="0.2" footer="0.2"/>' +
+      '<pageSetup orientation="landscape" paperSize="9"/>' +
+      '</worksheet>';
+  }
+
+  function buildXlsx(invoices) {
+    if (!Array.isArray(invoices)) throw new TypeError('Expected an array of approved invoices.');
+    if (invoices.length > 1048572) throw new RangeError('Too many invoices for a single Excel sheet.');
+    invoices.forEach(function (invoice) {
+      if (!invoice || typeof invoice !== 'object') throw new TypeError('Each invoice must be an object.');
+    });
+    var relationshipsNS = 'http://schemas.openxmlformats.org/package/2006/relationships';
+    var documentNS = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships';
+    return zip([
+      { name: '[Content_Types].xml', content: XML + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/worksheets/sheet1.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/></Types>' },
+      { name: '_rels/.rels', content: XML + '<Relationships xmlns="' + relationshipsNS + '"><Relationship Id="rId1" Type="' + documentNS + '/officeDocument" Target="xl/workbook.xml"/></Relationships>' },
+      { name: 'xl/workbook.xml', content: XML + '<workbook xmlns="' + NS + '" xmlns:r="' + documentNS + '"><bookViews><workbookView/></bookViews><sheets><sheet name="Approved invoices" sheetId="1" r:id="rId1"/></sheets></workbook>' },
+      { name: 'xl/_rels/workbook.xml.rels', content: XML + '<Relationships xmlns="' + relationshipsNS + '"><Relationship Id="rId1" Type="' + documentNS + '/worksheet" Target="worksheets/sheet1.xml"/><Relationship Id="rId2" Type="' + documentNS + '/styles" Target="styles.xml"/></Relationships>' },
+      { name: 'xl/styles.xml', content: XML + '<styleSheet xmlns="' + NS + '">' +
+        '<numFmts count="3"><numFmt numFmtId="164" formatCode="#,##0.00"/><numFmt numFmtId="165" formatCode="yyyy-mm-dd"/><numFmt numFmtId="166" formatCode="yyyy-mm-dd hh:mm"/></numFmts>' +
+        '<fonts count="4"><font><sz val="11"/><name val="Calibri"/><color rgb="FF20382E"/></font><font><b/><sz val="19"/><name val="Calibri"/><color rgb="FF124C37"/></font><font><sz val="10"/><name val="Calibri"/><color rgb="FF56695F"/></font><font><b/><sz val="11"/><name val="Calibri"/><color rgb="FFFFFFFF"/></font></fonts>' +
+        '<fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FF175C43"/><bgColor indexed="64"/></patternFill></fill></fills>' +
+        '<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left/><right/><top/><bottom style="hair"><color rgb="FFDBE7E0"/></bottom><diagonal/></border></borders>' +
+        '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+        '<cellXfs count="7">' +
+        '<xf numFmtId="0" fontId="0" fillId="0" borderId="1" xfId="0" applyAlignment="1"><alignment vertical="top" wrapText="1"/></xf>' +
+        '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="center"/></xf>' +
+        '<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="center" wrapText="1"/></xf>' +
+        '<xf numFmtId="0" fontId="3" fillId="2" borderId="0" xfId="0" applyAlignment="1"><alignment vertical="center"/></xf>' +
+        '<xf numFmtId="164" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1"><alignment vertical="top"/></xf>' +
+        '<xf numFmtId="165" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1"><alignment vertical="top"/></xf>' +
+        '<xf numFmtId="166" fontId="0" fillId="0" borderId="1" xfId="0" applyNumberFormat="1"><alignment vertical="top"/></xf>' +
+        '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>' },
+      { name: 'xl/worksheets/sheet1.xml', content: sheet(invoices) }
+    ]);
+  }
+
+  global.RasamExport = Object.freeze({ buildXlsx: buildXlsx });
+})(typeof window !== 'undefined' ? window : globalThis);
+
+</script>
+  <script>
+/* Browser-to-local-server bridge. An API key never enters this file or browser. */
+(function(global) {
+  'use strict';
+  function localServer() {
+    return !global.RASAM_STATIC_PREVIEW && !global.RASAM_INLINE_PREVIEW && global.location &&
+      ['http:', 'https:'].includes(global.location.protocol) &&
+      ['localhost', '127.0.0.1', '[::1]'].includes(global.location.hostname);
+  }
+  async function jsonRequest(path, options, timeout) {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeout);
+    try {
+      const response = await fetch(path, {...options, signal:controller.signal, credentials:'same-origin', cache:'no-store'});
+      let body;
+      try {body = await response.json();} catch (_) {throw new Error('Start Rasam with its launcher to enable AI reading.');}
+      if (!response.ok) {
+        const error = new Error(typeof body.error === 'string' ? body.error : 'AI reading could not finish. Try again or enter the details manually.');
+        error.code = body.code || 'request_failed';
+        throw error;
+      }
+      return body;
+    } catch (error) {
+      if (error.name === 'AbortError') throw new Error('AI reading timed out. Your file and edits are still here.');
+      if (error instanceof TypeError) throw new Error('Cannot reach the Rasam server. Keep the launcher window open and try again.');
+      throw error;
+    } finally {clearTimeout(timer);}
+  }
+  function base64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(new Error('This file could not be read. Upload it again.'));
+      reader.onload = () => {
+        const value = String(reader.result || '');
+        const comma = value.indexOf(',');
+        if (comma < 0) reject(new Error('This file could not be encoded. Upload it again.'));
+        else resolve(value.slice(comma + 1));
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+  global.RasamAI = {
+    async status() {
+      if (!localServer()) return {configured:false, localServer:false};
+      const data = await jsonRequest('/api/status', {method:'GET'}, 5000);
+      if (typeof data.configured !== 'boolean' || typeof data.csrf_token !== 'string') throw new Error('This server does not have Rasam AI reading. Use the updated launcher.');
+      return {...data, localServer:true};
+    },
+    async extract(file, mimeType, token) {
+      if (!localServer()) throw new Error('AI reading runs in the local app. Use Get the local app above to set it up.');
+      if (!token) throw new Error('Check the AI connection before reading this invoice.');
+      const data = await jsonRequest('/api/extract', {
+        method:'POST',
+        headers:{'Content-Type':'application/json', 'X-Rasam-Token':token},
+        body:JSON.stringify({filename:file.name, mime_type:mimeType, data_base64:await base64(file)})
+      }, 125000);
+      const item=data.invoice;
+      if (!item || typeof item.is_invoice !== 'boolean' || !Array.isArray(item.warnings) || !Array.isArray(item.field_warnings) || !Array.isArray(item.line_items)) throw new Error('AI returned an unreadable result. Your existing details were kept.');
+      for(const field of ['supplier','invoiceNumber','date','currency','net','vat','total']) {
+        if(item[field] !== null && typeof item[field] !== 'string') throw new Error('AI returned an invalid field. Your existing details were kept.');
+      }
+      if (item.warnings.some(value => typeof value !== 'string') ||
+          item.field_warnings.some(value => !value || !['supplier','invoiceNumber','date','currency','net','vat','total'].includes(value.field) || typeof value.message !== 'string') ||
+          item.line_items.some(value => !value || typeof value.description !== 'string' || ['quantity','unit_price','net_amount'].some(field => value[field] !== null && typeof value[field] !== 'string'))) {
+        throw new Error('AI returned unreadable review notes. Your existing details were kept.');
+      }
+      return item;
+    }
+  };
+})(window);
+
+</script>
+  <script>
+'use strict';
+(() => {
+  // AI requests go through the local server. Samples and manual entry stay offline.
+  const $ = id => document.getElementById(id);
+  const paths = {
+    inbox: '<path d="M4 4h16l2 12v4H2v-4L4 4Z"/><path d="M2 15h6l2 3h4l2-3h6"/>',
+    book: '<path d="M4 3h13a3 3 0 0 1 3 3v15H6a3 3 0 0 1-3-3V5a2 2 0 0 1 1-2Z"/><path d="M3 17h17M7 7h9M7 10h6"/>',
+    leaf: '<path d="M20 3c-7 0-15 2-15 9a6 6 0 0 0 6 6c7 0 9-8 9-15Z"/><path d="M3 21 15 9m-9 9v-6m5 1h6"/>',
+    sparkles: '<path d="m12 3 2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5L12 3ZM20 2v4m-2-2h4"/>',
+    plus: '<path d="M12 5v14M5 12h14"/>',
+    info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v6m0-10v.1"/>',
+    upload: '<path d="M12 16V3m-5 5 5-5 5 5M4 15v5h16v-5"/>',
+    download: '<path d="M12 3v13m-5-5 5 5 5-5M4 15v5h16v-5"/>',
+    lock: '<rect x="5" y="10" width="14" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3m-4 5v2"/>',
+    file: '<path d="M5 3h9l5 5v13H5V3Z"/><path d="M14 3v5h5M8 12h8M8 16h5"/>',
+    trash: '<path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7m4-7v7"/>',
+    pencil: '<path d="m15 4 5 5-11 11-6 1 1-6L15 4Zm-9 10 5 5M13 6l5 5"/>',
+    check: '<path d="m5 12 4 4L19 6"/>',
+    sheet: '<path d="M5 3h10l4 4v14H5V3Z"/><path d="M15 3v5h4M8 11h8M8 15h8M12 11v8M8 19h8"/>',
+    close: '<path d="m6 6 12 12M18 6 6 18"/>',
+    alert: '<path d="m12 3 10 18H2L12 3Z"/><path d="M12 9v5m0 3v.1"/>'
+  };
+  const icon = name => `<svg class="icon" viewBox="0 0 24 24" aria-hidden="true">${paths[name] || paths.file}</svg>`;
+  function icons(root = document) { root.querySelectorAll('[data-icon]').forEach(el => { el.innerHTML = icon(el.dataset.icon); }); }
+  const escape = value => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const format = value => Number(value).toLocaleString('en-GB', {minimumFractionDigits:2,maximumFractionDigits:2});
+  const fields = ['supplier', 'invoiceNumber', 'date', 'currency', 'net', 'vat', 'total', 'notes'];
+  const samples = [
+    {supplier:'Al Noor Stationery LLC',arabic:'مكتبة النور',invoiceNumber:'INV-2026-0481',date:'2026-08-12',currency:'SAR',net:'1950.00',vat:'292.50',total:'2242.50',sourceFile:'al-noor-example',city:'Riyadh',items:[['A4 copy paper · 20 boxes','1,400.00'],['Office stationery set','550.00']]},
+    {supplier:'Desert Print Studio',arabic:'استوديو الطباعة',invoiceNumber:'DPS-00286',date:'2026-08-14',currency:'AED',net:'640.00',vat:'32.00',total:'672.00',sourceFile:'desert-print-example',city:'Dubai',items:[['Business cards · 500 pcs','240.00'],['Brochure printing','400.00']]},
+    {supplier:'مكتبة الصفحات',arabic:'مكتبة الصفحات',invoiceNumber:'PG-00172',date:'2026-08-15',currency:'SAR',net:'800.00',vat:'120.00',total:'920.00',sourceFile:'arabic-stationery-example',city:'Riyadh',items:[['ورق طباعة · Printing paper','500.00'],['أدوات مكتبية · Stationery','300.00']]}
+  ];
+  let nextID = 1, sampleIndex = 0, currentID = null, filter = 'all', toastTimer;
+  const invoices = [];
+  const aiFields = ['supplier','invoiceNumber','date','currency','net','vat','total'];
+  const fieldNames = {supplier:'Supplier',invoiceNumber:'Invoice number',date:'Invoice date',currency:'Currency',net:'Net amount',vat:'Tax amount',total:'Invoice total'};
+  let aiConnection = {configured:false, localServer:false};
+  let pendingRemoveID = null;
+  const current = () => invoices.find(item => item.id === currentID);
+  const approved = () => invoices.filter(item => item.approved);
+  function tell(message, error = false) {
+    clearTimeout(toastTimer); $('toast').textContent = message; $('toast').classList.toggle('error', error); $('toast').hidden = false;
+    toastTimer = setTimeout(() => { $('toast').hidden = true; }, error ? 7000 : 4200);
+  }
+  function addSample(silent = false) {
+    const sample = samples[sampleIndex++ % samples.length];
+    const existing = invoices.find(item => item.mode === 'sample' && item.sample.invoiceNumber === sample.invoiceNumber);
+    if (existing) { currentID = existing.id; filter = 'all'; render(); if (!silent) tell('This example is already in your inbox.'); return; }
+    const record = {...sample, id: 'RAS-' + String(nextID++).padStart(4,'0'), mode:'sample', approved:false, confirmed:false, reviewedAt:'', notes:'', sample:{...sample}};
+    invoices.push(record); currentID = record.id; filter = 'all'; render();
+    if (!silent) tell('Sample invoice added. Its details are fictional.');
+  }
+  const shownInvoices = () => invoices.filter(item => filter === 'all' || (filter === 'approved' ? item.approved : !item.approved));
+  function renderList() {
+    const selected = current();
+    if (selected && ((filter === 'review' && selected.approved) || (filter === 'approved' && !selected.approved))) filter = 'all';
+    $('inbox-count').textContent = invoices.length;
+    document.querySelectorAll('[data-filter]').forEach(el => el.setAttribute('aria-pressed', String(el.dataset.filter === filter)));
+    const shown = shownInvoices();
+    $('invoice-list').innerHTML = shown.length ? shown.map(item => `<button class="invoice-item" data-id="${escape(item.id)}" aria-pressed="${item.id === currentID}" aria-label="Select ${escape(item.supplier || item.sourceFile)}">
+      <span class="invoice-item-head"><span class="file-tile">${icon('file')}</span><span><span class="invoice-item-name" dir="auto">${escape(item.supplier || 'Enter invoice details')}</span><span class="invoice-item-number">${escape(item.invoiceNumber || item.sourceFile)}</span></span></span>
+      <span class="invoice-item-foot"><span class="mini-status ${item.approved ? 'approved' : ''}">${item.approved ? 'Approved' : 'Needs review'}</span><span class="invoice-item-amount">${item.total !== '' && item.currency ? escape(item.currency) + ' ' + format(item.total) : '—'}</span></span></button>`).join('') : `<div class="empty-list">${filter === 'approved' ? 'No approved invoices yet.' : filter === 'review' ? 'All caught up. Nothing to review.' : 'Your invoices will appear here.'}</div>`;
+    $('invoice-list').querySelectorAll('[data-id]').forEach(button => button.addEventListener('click', () => {currentID = button.dataset.id; render();}));
+  }
+  function renderExport() {
+    const count = approved().length;
+    $('export-button').disabled = count === 0;
+    $('export-count').textContent = count;
+    $('export-title').textContent = count ? `${count} approved invoice${count === 1 ? '' : 's'}, ready for Excel.` : 'Your Excel file starts here.';
+    $('export-description').textContent = count ? 'One row per invoice. Sample rows are clearly labeled.' : 'Approve an invoice to include it in your export.';
+  }
+  function sourceHTML(sample) {
+    return `<article class="paper-invoice" aria-label="Fictional sample invoice. Original values are independent of the editable fields."><div class="paper-top"><div class="paper-mark">${sample.invoiceNumber.startsWith('DPS') ? 'dp.' : 'n.'}</div><span class="paper-arabic" lang="ar" dir="rtl">${escape(sample.arabic)}</span></div><h4 class="paper-supplier" dir="auto">${escape(sample.supplier)}</h4><p class="paper-address">${escape(sample.city)}<br>Fictional supplier · sample document</p><div class="paper-title">INVOICE</div><div class="paper-meta"><span>${escape(sample.invoiceNumber)}</span><span>${escape(new Date(sample.date + 'T12:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'}))}</span></div><table class="paper-table"><thead><tr><th>DESCRIPTION</th><th>${escape(sample.currency)}</th></tr></thead><tbody>${sample.items.map(item => `<tr><td dir="auto">${escape(item[0])}</td><td>${escape(item[1])}</td></tr>`).join('')}</tbody></table><div class="paper-totals"><div class="paper-total-line"><span>Subtotal</span><span>${format(sample.net)}</span></div><div class="paper-total-line"><span>Tax</span><span>${format(sample.vat)}</span></div><div class="paper-total-line paper-grand-total"><span>Total ${escape(sample.currency)}</span><span>${format(sample.total)}</span></div></div><div class="paper-stamp">SAMPLE ONLY · NOT A REAL INVOICE</div></article>`;
+  }
+  function renderSource(item) {
+    const preview = $('source-preview');
+    preview.classList.toggle('has-upload', item.mode !== 'sample');
+    $('source-type').textContent = item.mode === 'sample' ? 'SAMPLE' : item.fileType === 'application/pdf' ? 'PDF' : 'IMAGE';
+    if (item.mode === 'sample') {
+      preview.innerHTML = sourceHTML(item.sample);
+      $('source-caption').textContent = 'Fictional example · for trying the workflow';
+    } else {
+      preview.innerHTML = '';
+      if (item.fileType === 'application/pdf') {
+        const frame = document.createElement('iframe'); frame.className='source-pdf'; frame.src=item.url; frame.title='Original invoice PDF'; preview.appendChild(frame);
+      } else {
+        const img = document.createElement('img'); img.className='source-image'; img.src=item.url; img.alt='Uploaded invoice ' + item.sourceFile;
+        img.onerror = () => { preview.innerHTML='<p class="source-error">This image could not be displayed. Try a different PDF, JPG, PNG, or WebP file.</p>'; };
+        preview.appendChild(img);
+      }
+      $('source-caption').innerHTML = '';
+      const a = document.createElement('a'); a.className='file-open-link'; a.href=item.url; a.target='_blank'; a.rel='noopener'; a.textContent='Open original file ↗';
+      $('source-caption').appendChild(a);
+    }
+  }
+  function renderHeader(item) {
+    $('selected-supplier').textContent = item.supplier || 'New invoice';
+    $('selected-meta').textContent = `${item.invoiceNumber || item.sourceFile} · ${item.mode === 'sample' ? 'Sample invoice' : item.mode === 'ai' ? 'AI draft · review required' : 'Manual entry'}`;
+    $('selected-status').textContent = item.aiStatus === 'reading' ? 'Reading…' : item.approved ? 'Approved' : 'Needs review';
+    $('selected-status').classList.toggle('approved', item.approved);
+    $('approve-button').disabled = item.approved || item.aiStatus === 'reading';
+    $('approve-button').innerHTML = icon('check') + (item.approved ? 'Approved for export' : 'Approve invoice');
+    $('review-confirm').checked = item.confirmed;
+    $('approval-hint').textContent = item.approved ? 'Editing a detail will require you to review it again.' : 'Approval adds this invoice to your Excel export.';
+    $('currency-prefix').textContent = item.currency || 'CUR';
+    renderAi(item);
+  }
+  function cents(value) {
+    // Convert decimal input directly to integer cents, avoiding addition drift.
+    const match = String(value).match(/^(\d+)(?:\.(\d{1,2}))?$/);
+    if (!match) return null;
+    const result = Number(match[1]) * 100 + Number((match[2] || '').padEnd(2,'0'));
+    return Number.isSafeInteger(result) && result <= 99999999999900 ? result : null;
+  }
+  function validDate(value) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return false;
+    const date = new Date(value + 'T00:00:00Z');
+    return !isNaN(date) && date.toISOString().slice(0,10) === value && value >= '1900-01-01' && value <= '9999-12-31';
+  }
+  function errorsFor(item) {
+    const issues = [];
+    if (item.aiStatus === 'reading') issues.push(['read-ai-button','Wait for AI reading to finish before approving.']);
+    if (!item.supplier.trim()) issues.push(['supplier','Enter the supplier name.']);
+    if (!item.invoiceNumber.trim()) issues.push(['invoiceNumber','Enter the invoice number.']);
+    if (!validDate(item.date)) issues.push(['date','Enter a valid invoice date (1900 or later).']);
+    if (!['SAR','AED','USD','EUR','GBP'].includes(item.currency)) issues.push(['currency','Choose the invoice currency.']);
+    for (const [key, label] of [['net','net amount'],['vat','tax amount'],['total','invoice total']]) {
+      const value = cents(item[key]);
+      if (value === null) issues.push([key,`Enter a non-negative ${label} with no more than two decimal places.`]);
+      else if (key === 'total' && value <= 0) issues.push([key,'Invoice total must be greater than zero.']);
+    }
+    const n = cents(item.net), v = cents(item.vat), t = cents(item.total);
+    if (n !== null && v !== null && t !== null && n + v !== t) issues.push(['total','Net amount + tax must equal the invoice total.']);
+    if (item.invoiceNumber.trim() && item.supplier.trim()) {
+      const duplicate = invoices.some(other => other.id !== item.id && other.supplier.trim().toLocaleLowerCase() === item.supplier.trim().toLocaleLowerCase() && other.invoiceNumber.trim().toLocaleLowerCase() === item.invoiceNumber.trim().toLocaleLowerCase());
+      if (duplicate) issues.push(['invoiceNumber','This supplier and invoice number already exist in the inbox. Check for a duplicate.']);
+    }
+    if (!item.confirmed) issues.push(['review-confirm','Confirm that you checked the details against the invoice.']);
+    return issues;
+  }
+  function updateAmountCheck(item) {
+    const n=cents(item.net),v=cents(item.vat),t=cents(item.total), el=$('amount-check');
+    el.className='amount-check';
+    if (n === null || v === null || t === null) {el.classList.add('neutral');el.textContent='Enter all three amounts to check the total.';}
+    else if (n + v === t) {el.innerHTML=icon('check')+'<span>Amounts add up · tax rules are not checked</span>';}
+    else {el.classList.add('warning');el.innerHTML=icon('alert')+`<span>Net + tax is ${escape(item.currency)} ${format((n+v)/100)}. Check the total.</span>`;}
+  }
+  function clearErrors() { $('form-errors').hidden=true; fields.forEach(key => $(key).removeAttribute('aria-invalid')); $('review-confirm').removeAttribute('aria-invalid'); }
+  function renderAi(item) {
+    const reading=item.aiStatus==='reading';
+    $('read-ai-button').disabled=reading || item.mode==='sample' || !aiConnection.configured;
+    $('read-ai-button').innerHTML=icon('sparkles')+(reading?'Reading invoice…':item.aiResult?'Read again':'Read with AI');
+    $('remove-button').disabled=reading;
+    $('ai-read-state').textContent=reading?'Reading the document. Your edits will be kept.':item.mode==='sample'?'Samples are prefilled. Upload your own file to try AI.':!aiConnection.configured?'Set up the AI connection above, or use manual entry.':item.aiResult?'Review the draft and any notes below.':'Arabic and English · PDF or image';
+    const feedback=$('ai-feedback');
+    const result=item.aiResult;
+    const messages=[];
+    if(item.aiError) messages.push(item.aiError);
+    if(item.aiMessage) messages.push(item.aiMessage);
+    if(result) messages.push(...result.warnings);
+    feedback.hidden=!messages.length;
+    feedback.classList.toggle('error',!!item.aiError);
+    feedback.innerHTML=messages.length?'<ul>'+messages.map(message=>'<li>'+escape(message)+'</li>').join('')+'</ul>':'';
+    $('ai-insights').hidden=!result;
+    if(!result) {$('ai-insight-body').innerHTML='';return;}
+    const candidates=aiFields.filter(field=>result[field]!==null && String(result[field])!==String(item[field]));
+    const warningList=result.field_warnings.length?'<h4>Fields to double-check</h4><ul>'+result.field_warnings.map(w=>'<li><strong>'+escape(fieldNames[w.field]||w.field)+':</strong> '+escape(w.message)+'</li>').join('')+'</ul>':'';
+    const suggestions=candidates.length&&result.is_invoice?'<h4>Suggestions kept separate from your edits</h4><div class="ai-candidates">'+candidates.map(field=>`<div><span><strong>${escape(fieldNames[field])}</strong><span dir="auto">${escape(result[field])}</span></span><button type="button" class="button secondary" data-apply-ai="${field}" ${reading?'disabled':''}>Use value</button></div>`).join('')+'</div>':'';
+    const lines=result.line_items.length?'<h4>Extracted line items</h4><p class="ai-line-note">Reference only. Excel exports the invoice totals, not these individual lines.</p><div class="ai-line-items">'+result.line_items.map(line=>`<div><strong dir="auto">${escape(line.description)}</strong><p>Qty: ${escape(line.quantity??'Not clear')} · Unit price: ${escape(line.unit_price??'Not clear')} · Net: ${escape(line.net_amount??'Not clear')}</p></div>`).join('')+'</div>':'<p>No individual line items were clearly extracted.</p>';
+    $('ai-insight-body').innerHTML=warningList+suggestions+lines;
+    $('ai-insight-body').querySelectorAll('[data-apply-ai]').forEach(button=>button.addEventListener('click',()=>{
+      const selected=current();
+      if(!selected || selected.id!==item.id || selected.aiStatus==='reading') return;
+      const field=button.dataset.applyAi;
+      if(!aiFields.includes(field))return;
+      selected[field]=String(result[field]);selected.revision=(selected.revision||0)+1;
+      selected.approved=false;selected.confirmed=false;selected.reviewedAt='';
+      render();tell('AI suggestion applied. Check it against the invoice.');
+    }));
+  }
+  async function refreshConnection() {
+    $('ai-check-connection').disabled=true;
+    try {
+      aiConnection=window.RasamAI?await window.RasamAI.status():{configured:false,localServer:false};
+      $('ai-connection-title').textContent=aiConnection.configured?'AI key configured':aiConnection.localServer?'Add your AI key in the launcher':'Open the localhost app for AI reading';
+      $('ai-connection-detail').textContent=aiConnection.configured?`Model: ${aiConnection.model}. Upload a file, then choose Read with AI. Your first read tests the key.`:aiConnection.localServer?'Restart the launcher and enter your OpenAI API key in its hidden prompt. Keep the key out of this chat.':'Get the local app from the link above and run its launcher. This website preview supports samples, manual review, and Excel export.';
+    } catch(error) {
+      aiConnection={configured:false,localServer:false};
+      $('ai-connection-title').textContent='AI server is not connected';
+      $('ai-connection-detail').textContent=error.message;
+    } finally {
+      $('ai-check-connection').disabled=false;
+      if(current())renderAi(current());
+    }
+  }
+  async function readWithAI() {
+    const item=current();
+    if(!item || !item.file || item.mode==='sample' || item.aiStatus==='reading')return;
+    if(!aiConnection.configured){tell('Set up your AI key in the launcher first.',true);return;}
+    const revision=item.revision||0;
+    item.aiStatus='reading';item.aiError='';item.aiMessage='';item.approved=false;item.confirmed=false;item.reviewedAt='';
+    renderHeader(item);renderList();renderExport();
+    try {
+      const result=await window.RasamAI.extract(item.file,item.fileType,aiConnection.csrf_token);
+      if(!invoices.includes(item))return;
+      item.aiResult=result;
+      if(!result.is_invoice) {
+        item.aiStatus='error';
+        item.aiError='This file could not be treated as a single invoice. Try a clearer invoice or enter the details manually.';
+      } else {
+        let count=0;
+        if((item.revision||0)===revision) {
+          aiFields.forEach(field=>{if(!String(item[field]??'').trim() && result[field]!==null){item[field]=result[field];count++;}});
+        }
+        item.mode='ai';item.aiStatus='done';
+        item.aiMessage=count?`${count} empty field${count===1?'':'s'} filled. Existing values were kept. Review the draft before approval.`:'Your existing values were kept. Open AI suggestions below to compare the reading.';
+      }
+    } catch(error) {
+      item.aiStatus='error';item.aiError=error.message||'AI reading failed. Your existing details were kept.';
+      if(['not_configured','authentication','authentication_failed','invalid_api_key'].includes(error.code)){aiConnection.configured=false;$('ai-connection-title').textContent='AI key needs attention';}
+    } finally {
+      item.approved=false;item.confirmed=false;item.reviewedAt='';
+      if(currentID===item.id){render();if(item.aiResult&&item.aiResult.field_warnings.length)$('ai-insights').open=true;}
+      else {renderList();renderExport();if(current())renderAi(current());}
+      tell(item.aiError || 'AI reading finished. Review the invoice draft.',!!item.aiError);
+    }
+  }
+  function render() {
+    renderList(); renderExport();
+    const item=current();
+    $('review-panel').hidden=!item; $('empty-panel').hidden=!!item;
+    if (!item) return;
+    clearErrors(); renderHeader(item); renderSource(item);
+    fields.forEach(key => { $(key).value=item[key] ?? ''; });
+    $('entry-description').textContent=item.mode === 'sample' ? 'Example values are filled in. Compare them with the invoice.' : item.mode === 'ai' ? 'AI drafted these details. Check every field against the source.' : 'Read this invoice with AI, or enter its details manually.';
+    updateAmountCheck(item);
+  }
+  fields.forEach(key => {
+    $(key).addEventListener('input', () => {
+      const item=current(); if (!item) return;
+      const newValue=$(key).value;
+      if (newValue === item[key]) return;
+      const wasApproved=item.approved;
+      item[key]=newValue;item.approved=false;item.confirmed=false;item.reviewedAt='';item.revision=(item.revision||0)+1;
+      clearErrors();renderHeader(item);updateAmountCheck(item);renderList();renderExport();
+      if (wasApproved) tell('Details changed. Review this invoice again before exporting.');
+    });
+  });
+  $('review-confirm').addEventListener('change', () => {
+    const item=current(); if (!item) return;
+    item.confirmed=$('review-confirm').checked;
+    if (!item.confirmed) {item.approved=false;item.reviewedAt='';}
+    clearErrors();renderHeader(item);renderList();renderExport();
+  });
+  $('invoice-form').addEventListener('submit', event => {
+    event.preventDefault();const item=current();if (!item) return;
+    clearErrors();const issues=errorsFor(item);
+    if (issues.length) {
+      $('form-errors').innerHTML='<ul>'+issues.map(([,message])=>'<li>'+escape(message)+'</li>').join('')+'</ul>';
+      $('form-errors').hidden=false;
+      issues.forEach(([field])=>$(field).setAttribute('aria-invalid','true'));
+      $(issues[0][0]).focus();tell('A few details need your attention.',true);return;
+    }
+    item.supplier=item.supplier.trim();item.invoiceNumber=item.invoiceNumber.trim();item.approved=true;item.reviewedAt=new Date().toISOString();
+    renderHeader(item);renderList();renderExport();tell('Invoice approved. You can now export it to Excel.');
+  });
+  function downloadFile(bytes, filename, mime) {
+    const blob=bytes instanceof Blob ? bytes : new Blob([bytes],{type:mime});
+    const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;document.body.appendChild(a);a.click();a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),30000);
+  }
+  $('export-button').addEventListener('click', () => {
+    const rows=approved();if (!rows.length) return;
+    // Re-check records at export as well as at approval.
+    const bad=rows.find(item=>errorsFor(item).length);
+    if (bad) {bad.approved=false;bad.confirmed=false;bad.reviewedAt='';currentID=bad.id;filter='all';render();tell('An approved invoice needs another review before export.',true);return;}
+    try {
+      const data=rows.map(item=>({...item,net:Number(item.net),vat:Number(item.vat),total:Number(item.total)}));
+      const bytes=window.RasamExport.buildXlsx(data);
+      const date=new Date().toISOString().slice(0,10);
+      downloadFile(bytes,`rasam-invoices-${date}.xlsx`,'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      tell(`Excel export prepared with ${rows.length} approved invoice${rows.length===1?'':'s'}.`);
+    } catch (error) {console.error('Export failed',error);tell('Excel export could not be created. Your invoice details are still here.',true);}
+  });
+  async function detectFileType(file) {
+    const b=new Uint8Array(await file.slice(0,12).arrayBuffer());
+    if(b[0]===0x25&&b[1]===0x50&&b[2]===0x44&&b[3]===0x46&&b[4]===0x2d)return 'application/pdf';
+    if(b[0]===0xff&&b[1]===0xd8&&b[2]===0xff)return 'image/jpeg';
+    if(b[0]===0x89&&b[1]===0x50&&b[2]===0x4e&&b[3]===0x47&&b[4]===0x0d&&b[5]===0x0a&&b[6]===0x1a&&b[7]===0x0a)return 'image/png';
+    if(b[0]===0x52&&b[1]===0x49&&b[2]===0x46&&b[3]===0x46&&b[8]===0x57&&b[9]===0x45&&b[10]===0x42&&b[11]===0x50)return 'image/webp';
+    return null;
+  }
+  let importInProgress=false;
+  async function addFiles(fileList) {
+    if(importInProgress){tell('Please wait for the current files to finish loading.');return;}
+    importInProgress=true;
+    let added=0,skipped=[];
+    try {
+      for (const file of Array.from(fileList)) {
+        if(invoices.length>=50){skipped.push('This prototype supports up to 50 invoices per session.');break;}
+        if(file.size>20*1024*1024){skipped.push(file.name+': exceeds the 20 MB limit.');continue;}
+        if(invoices.some(i=>i.fileKey===`${file.name}:${file.size}:${file.lastModified}`)){skipped.push(file.name+': already in the inbox.');continue;}
+        const type=await detectFileType(file);
+        if(!type){skipped.push(file.name+': choose a valid PDF, JPG, PNG, or WebP file.');continue;}
+        const item={id:'RAS-'+String(nextID++).padStart(4,'0'),supplier:'',invoiceNumber:'',date:'',currency:'',net:'',vat:'',total:'',notes:'',mode:'manual',approved:false,confirmed:false,reviewedAt:'',revision:0,file,sourceFile:file.name,fileType:type,fileKey:`${file.name}:${file.size}:${file.lastModified}`,url:URL.createObjectURL(file)};
+        invoices.push(item);currentID=item.id;added++;
+      }
+      if(added){filter='all';render();tell(`${added} file${added===1?'':'s'} added. Choose Read with AI or enter details manually.`);}
+      if(skipped.length)tell((added?`${added} file${added===1?'':'s'} added. `:'')+skipped.slice(0,2).join(' '),true);
+    } catch(error){console.error('Import failed',error);tell('A file could not be opened. Try uploading it again.',true);if(added)render();}
+    finally {importInProgress=false;$('file-input').value='';}
+  }
+  function chooseFiles() {$('file-input').click();}
+  ['upload-button','drop-zone'].forEach(id=>$(id).addEventListener('click',chooseFiles));
+  $('file-input').addEventListener('change',event=>addFiles(event.target.files));
+  const drop=$('drop-zone');
+  ['dragenter','dragover'].forEach(type=>drop.addEventListener(type,event=>{event.preventDefault();drop.classList.add('drag-over');}));
+  ['dragleave','drop'].forEach(type=>drop.addEventListener(type,event=>{event.preventDefault();drop.classList.remove('drag-over');}));
+  drop.addEventListener('drop',event=>addFiles(event.dataTransfer.files));
+  // Prevent dropping a file elsewhere from navigating away and clearing this session.
+  window.addEventListener('dragover',event=>{if(event.dataTransfer.types.includes('Files'))event.preventDefault();});
+  window.addEventListener('drop',event=>{if(event.dataTransfer.types.includes('Files'))event.preventDefault();});
+  ['sample-button','sidebar-sample','empty-sample'].forEach(id=>$(id).addEventListener('click',()=>addSample()));
+  document.querySelectorAll('[data-filter]').forEach(button=>button.addEventListener('click',()=>{
+    filter=button.dataset.filter;const shown=shownInvoices();
+    if(!shown.some(item=>item.id===currentID))currentID=shown[0]?.id??null;
+    render();
+  }));
+  ['guide-button','top-guide','note-guide'].forEach(id=>$(id).addEventListener('click',()=>$('guide-dialog').showModal()));
+  ['close-guide','guide-done'].forEach(id=>$(id).addEventListener('click',()=>$('guide-dialog').close()));
+  $('remove-button').addEventListener('click',()=>{
+    const item=current();if(!item)return;pendingRemoveID=item.id;
+    $('remove-description').textContent=`“${item.supplier||item.sourceFile}” and its details will be removed from this session.`;
+    $('remove-dialog').showModal();
+  });
+  ['cancel-remove','cancel-remove-icon'].forEach(id=>$(id).addEventListener('click',()=>$('remove-dialog').close()));
+  $('confirm-remove').addEventListener('click',()=>{
+    const index=invoices.findIndex(item=>item.id===pendingRemoveID);
+    if(index>=0){const [removed]=invoices.splice(index,1);if(removed.url)URL.revokeObjectURL(removed.url);}
+    $('remove-dialog').close();pendingRemoveID=null;currentID=shownInvoices()[0]?.id??null;render();tell('Invoice removed from this session.');
+  });
+  window.addEventListener('beforeunload',event=>{if(invoices.some(i=>i.mode!=='sample'||i.approved)){event.preventDefault();event.returnValue='';}});
+  $('read-ai-button').addEventListener('click',readWithAI);
+  $('ai-check-connection').addEventListener('click',refreshConnection);
+  icons();addSample(true);refreshConnection();
+})();
+
+</script>
+</body>
+</html>
