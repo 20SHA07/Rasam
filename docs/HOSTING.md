@@ -39,6 +39,6 @@ Only public website files belong on `gh-pages`. Customer invoices and API keys m
 
 ## What works online
 
-The landing page, sample/manual invoice review, and Excel export work as static browser pages. Contact buttons open an email draft to `rasam@polsia.app`.
+The landing page, sample/manual invoice review, and Excel export work as static browser pages. Feedback buttons open the Rasam GitHub issue form. Submissions there are public.
 
 AI extraction runs through the separate local app in `workbench/`. GitHub Pages does not run the Python server. Publishing this website does not make a live AI endpoint available or require an API key in the page.
