@@ -117,6 +117,9 @@ def _load_paddle():
             use_doc_unwarping=False,
             use_textline_orientation=False,
             device='cpu',
+            # Paddle 3.3.x oneDNN can fail converting PIR attributes on Windows.
+            # Use the regular CPU path before the predictors are constructed.
+            enable_mkldnn=(sys.platform != 'win32'),
         )
     return _PADDLE
 
