@@ -56,6 +56,18 @@ Arabic/GCC reading accuracy has not been measured on a representative dataset. R
 
 Rasam does not yet learn from your invoice history. The next step is to store approved corrections separately for each company and use relevant examples when reading another invoice. Uploading files alone does not train a model. See the [invoice-learning plan](docs/INVOICE-LEARNING.md).
 
+## Keep your Windows copy updated
+
+Use a Git clone of this repository for automatic updates. A downloaded ZIP has no Git connection.
+
+1. From your existing Rasam clone, run `git pull --ff-only` once to get the updater.
+2. Open `scripts` and double-click **Enable-Auto-Update-Windows.bat**.
+3. Leave Windows to check GitHub every five minutes while you are signed in and the computer is awake. It also checks when you sign in.
+
+The updater applies new `main` commits only when your working copy has no local edits or commits of its own. Otherwise it pauses updates and records the reason. It does not upload, commit, or discard your work. Export any active invoice work, then restart Rasam to load updated server code.
+
+Use **Disable-Auto-Update-Windows.bat** to turn it off. See the [automatic update guide](docs/AUTO-UPDATES.md) for setup, status, and limits. Enabling the task is a one-time action on your own Windows computer.
+
 ## Website and project files
 
 GitHub Pages serves the landing page and manual preview. OCR and AI reading run through the local app; GitHub Pages cannot run its Python server.
