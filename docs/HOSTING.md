@@ -32,6 +32,6 @@ If you fork the repository, select **Deploy from a branch → gh-pages → /(roo
 
 The landing page, sample/manual invoice review, and Excel export work as static browser pages. Feedback buttons open the public Rasam GitHub issue form.
 
-OCR and optional Groq/OpenAI reading run through the separate [local app](../workbench/README.md). GitHub Pages cannot run its Python server, and the public preview disables reading requests. Never put an API key in website code. Customer invoices and keys must stay outside the repository.
+OCR and AI reading run through the separate [local app](../workbench/README.md). Its free Ollama option uses a model downloaded to your computer; Groq and OpenAI are optional cloud providers. GitHub Pages cannot run the Python reader or Ollama, and the public preview disables reading requests. Never put an API key in website code. Customer invoices and keys must stay outside the repository.
 
 The local server is designed for one computer. A future public reader will need a separate backend with authentication and suitable document storage.

@@ -43,12 +43,12 @@
       if (!localServer()) return {configured:false, localServer:false};
       const data = await jsonRequest('/api/status', {method:'GET'}, 5000);
       if (typeof data.configured !== 'boolean' || typeof data.csrf_token !== 'string' ||
-          (data.provider !== undefined && !['ocr','groq','openai'].includes(data.provider)) ||
+          (data.provider !== undefined && !['ocr','ollama','groq','openai'].includes(data.provider)) ||
           (data.data_destination !== undefined && !['local','groq','openai'].includes(data.data_destination))) {
         throw new Error('This server does not have a compatible Rasam reader. Use the updated launcher.');
       }
       // Older local launchers exposed only OpenAI. Preserve that disclosure.
-      return {...data, provider:data.provider || 'openai', data_destination:data.data_destination || (data.provider === 'ocr' ? 'local' : data.provider || 'openai'), localServer:true};
+      return {...data, provider:data.provider || 'openai', data_destination:data.data_destination || (['ocr','ollama'].includes(data.provider) ? 'local' : data.provider || 'openai'), localServer:true};
     },
     async extract(file, mimeType, token) {
       if (!localServer()) throw new Error('Invoice reading runs in the localhost app. Use manual entry in the website preview or a directly opened file.');
@@ -57,7 +57,7 @@
         method:'POST',
         headers:{'Content-Type':'application/json', 'X-Rasam-Token':token},
         body:JSON.stringify({filename:file.name, mime_type:mimeType, data_base64:await base64(file)})
-      }, 300000);
+      }, 360000);
       const item=data.invoice;
       if (!item || typeof item.is_invoice !== 'boolean' || !Array.isArray(item.warnings) || !Array.isArray(item.field_warnings) || !Array.isArray(item.line_items)) throw new Error('The reader returned an unreadable result. Your existing details were kept.');
       for(const field of ['supplier','invoiceNumber','date','currency','net','vat','total']) {
@@ -69,7 +69,7 @@
         throw new Error('The reader returned unreadable review notes. Your existing details were kept.');
       }
       const metadata=data.reading;
-      if (metadata !== undefined && (!metadata || !['ocr','groq','openai'].includes(metadata.provider) ||
+      if (metadata !== undefined && (!metadata || !['ocr','ollama','groq','openai'].includes(metadata.provider) ||
           typeof metadata.engine !== 'string' || metadata.engine.length > 200 ||
           typeof metadata.source_text !== 'string' || metadata.source_text.length > 60000)) {
         throw new Error('The reader returned invalid reading metadata. Your existing details were kept.');

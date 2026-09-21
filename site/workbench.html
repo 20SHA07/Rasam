@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="color-scheme" content="light">
-  <meta name="description" content="Rasam: invoice reading and human review. Read Arabic and English invoices with local OCR and optional AI, check the details, and export approved entries to Excel.">
+  <meta name="description" content="Rasam: invoice reading and human review. Read Arabic and English invoices with free local OCR and optional Ollama AI, check the details, and export approved entries to Excel.">
   <title>Rasam · Workbench preview</title>
   <style>
 :root {
@@ -1803,7 +1803,7 @@ dialog h2 {
         <button class="nav-item" id="guide-button"><span data-icon="book"></span>Quick guide</button>
       </nav>
       <div class="sidebar-note"><span class="note-leaf" data-icon="leaf"></span><h3>Small steps.<br>Less paperwork.</h3><p>One invoice is all it takes to try your first workflow.</p><button class="sidebar-link" id="sidebar-sample">Load an example <span aria-hidden="true">↗</span></button></div>
-      <div class="sidebar-bottom"><span class="status-dot"></span> Local prototype <span class="version">v0.3</span></div>
+      <div class="sidebar-bottom"><span class="status-dot"></span> Local prototype <span class="version">v0.4</span></div>
     </aside>
 
     <main id="workbench">
@@ -1830,7 +1830,7 @@ dialog h2 {
 
               <section class="fields-panel"><div class="panel-label"><h3>Invoice details</h3><span class="editable-label"><span data-icon="pencil"></span>Editable</span></div><p class="fields-description" id="entry-description">Example values are filled in. Compare them with the invoice.</p>
                 <div class="ai-actions"><button type="button" class="button secondary" id="read-ai-button" disabled><span data-icon="sparkles"></span>Read invoice</button><span id="ai-read-state" aria-live="polite">Upload your own invoice to try the reader.</span></div>
-                <p id="reader-disclosure" class="ai-disclosure">The local launcher shows where reading takes place. Uploading alone does not send your file.</p>
+                <p id="reader-disclosure" class="ai-disclosure">Use the local app for free OCR and optional local AI. The launcher shows where reading takes place. Uploading alone does not send your file.</p>
                 <div id="ai-feedback" class="ai-feedback" role="status" aria-live="polite" hidden></div>
                 <form id="invoice-form" novalidate>
                   <label class="field full">Supplier name <span class="required">*</span><input id="supplier" name="supplier" type="text" autocomplete="off" maxlength="200" required dir="auto"></label>
@@ -1851,13 +1851,13 @@ dialog h2 {
         </section>
 
         <section class="export-bar" aria-label="Excel export"><div class="export-copy"><span class="export-icon" data-icon="sheet"></span><div><strong id="export-title">Your Excel file starts here.</strong><p id="export-description">Approve an invoice to include it in your export.</p></div></div><button class="button export-button" id="export-button" disabled><span data-icon="download"></span>Export Excel <span id="export-count">0</span></button></section>
-        <footer class="page-footer"><span>Made for the work between invoice and spreadsheet.</span><span id="reader-footer">Local OCR available in the launcher · optional AI assistance</span></footer>
+        <footer class="page-footer"><span>Made for the work between invoice and spreadsheet.</span><span id="reader-footer">Free local OCR · optional local AI with Ollama</span></footer>
       </div>
     </main>
   </div>
   <input id="file-input" type="file" accept="application/pdf,image/jpeg,image/png,image/webp,.pdf,.jpg,.jpeg,.png,.webp" multiple hidden>
   <div id="toast" class="toast" role="status" aria-live="polite" hidden></div>
-  <dialog id="guide-dialog" aria-labelledby="guide-title"><div class="dialog-top"><span class="eyebrow">WELCOME TO RASAM</span><button class="icon-button" id="close-guide" aria-label="Close quick guide"><span data-icon="close"></span></button></div><h2 id="guide-title">Your first invoice, step by step.</h2><ol class="guide-steps"><li><strong>Try the example</strong><p>A fictional invoice is already here. Change a detail and watch the totals check respond.</p></li><li><strong>Review and approve</strong><p>Check the values against the source, tick the review box, then approve. Editing an approved invoice sends it back for review.</p></li><li><strong>Export to Excel</strong><p>Download a real .xlsx file containing only approved invoices. Sample rows are labeled so you can tell them apart.</p></li><li><strong>Try your own file</strong><p>Follow the <a href="https://github.com/20SHA07/Rasam/tree/main/workbench#readme" target="_blank" rel="noopener">local app setup guide</a>, then start the launcher. Free local OCR needs no API key. Upload a PDF or image and choose Read invoice. You can select optional Groq AI in the launcher to help organize recognized text.</p></li></ol><div class="guide-footnote">Check every draft against the original, especially unclear Arabic text and amounts. This prototype checks that net + tax equals total. It does not verify tax rules or produce a posted journal. Your session clears when you refresh or close the tab.</div><button class="button primary" id="guide-done">Let’s try it <span aria-hidden="true">→</span></button></dialog>
+  <dialog id="guide-dialog" aria-labelledby="guide-title"><div class="dialog-top"><span class="eyebrow">WELCOME TO RASAM</span><button class="icon-button" id="close-guide" aria-label="Close quick guide"><span data-icon="close"></span></button></div><h2 id="guide-title">Your first invoice, step by step.</h2><ol class="guide-steps"><li><strong>Try the example</strong><p>A fictional invoice is already here. Change a detail and watch the totals check respond.</p></li><li><strong>Review and approve</strong><p>Check the values against the source, tick the review box, then approve. Editing an approved invoice sends it back for review.</p></li><li><strong>Export to Excel</strong><p>Download a real .xlsx file containing only approved invoices. Sample rows are labeled so you can tell them apart.</p></li><li><strong>Try your own file</strong><p>Follow the <a href="https://github.com/20SHA07/Rasam/tree/main/workbench#readme" target="_blank" rel="noopener">local app setup guide</a>, then start the launcher. Free local OCR needs no API key. Add optional Ollama AI to organize recognized text on your computer, with no per-read API charge. Upload a PDF or image and choose Read invoice. Groq and OpenAI remain optional cloud readers selected in the launcher.</p></li></ol><div class="guide-footnote">Check every draft against the original, especially unclear Arabic text and amounts. This prototype checks that net + tax equals total. It does not verify tax rules or produce a posted journal. Your session clears when you refresh or close the tab.</div><button class="button primary" id="guide-done">Let’s try it <span aria-hidden="true">→</span></button></dialog>
   <dialog id="remove-dialog" aria-labelledby="remove-title"><div class="dialog-top"><span class="eyebrow">REMOVE INVOICE</span><button class="icon-button" id="cancel-remove-icon" aria-label="Cancel removal"><span data-icon="close"></span></button></div><h2 id="remove-title">Remove this invoice?</h2><p id="remove-description">Its details will be removed from this session.</p><div class="dialog-actions"><button class="button secondary" id="cancel-remove">Keep invoice</button><button class="button danger" id="confirm-remove">Remove invoice</button></div></dialog>
   <script>
 /* Rasam XLSX export. No network calls or third-party runtime dependencies. */
@@ -2114,12 +2114,12 @@ dialog h2 {
       if (!localServer()) return {configured:false, localServer:false};
       const data = await jsonRequest('/api/status', {method:'GET'}, 5000);
       if (typeof data.configured !== 'boolean' || typeof data.csrf_token !== 'string' ||
-          (data.provider !== undefined && !['ocr','groq','openai'].includes(data.provider)) ||
+          (data.provider !== undefined && !['ocr','ollama','groq','openai'].includes(data.provider)) ||
           (data.data_destination !== undefined && !['local','groq','openai'].includes(data.data_destination))) {
         throw new Error('This server does not have a compatible Rasam reader. Use the updated launcher.');
       }
       // Older local launchers exposed only OpenAI. Preserve that disclosure.
-      return {...data, provider:data.provider || 'openai', data_destination:data.data_destination || (data.provider === 'ocr' ? 'local' : data.provider || 'openai'), localServer:true};
+      return {...data, provider:data.provider || 'openai', data_destination:data.data_destination || (['ocr','ollama'].includes(data.provider) ? 'local' : data.provider || 'openai'), localServer:true};
     },
     async extract(file, mimeType, token) {
       if (!localServer()) throw new Error('Invoice reading runs in the localhost app. Use manual entry in the website preview or a directly opened file.');
@@ -2128,7 +2128,7 @@ dialog h2 {
         method:'POST',
         headers:{'Content-Type':'application/json', 'X-Rasam-Token':token},
         body:JSON.stringify({filename:file.name, mime_type:mimeType, data_base64:await base64(file)})
-      }, 300000);
+      }, 360000);
       const item=data.invoice;
       if (!item || typeof item.is_invoice !== 'boolean' || !Array.isArray(item.warnings) || !Array.isArray(item.field_warnings) || !Array.isArray(item.line_items)) throw new Error('The reader returned an unreadable result. Your existing details were kept.');
       for(const field of ['supplier','invoiceNumber','date','currency','net','vat','total']) {
@@ -2140,7 +2140,7 @@ dialog h2 {
         throw new Error('The reader returned unreadable review notes. Your existing details were kept.');
       }
       const metadata=data.reading;
-      if (metadata !== undefined && (!metadata || !['ocr','groq','openai'].includes(metadata.provider) ||
+      if (metadata !== undefined && (!metadata || !['ocr','ollama','groq','openai'].includes(metadata.provider) ||
           typeof metadata.engine !== 'string' || metadata.engine.length > 200 ||
           typeof metadata.source_text !== 'string' || metadata.source_text.length > 60000)) {
         throw new Error('The reader returned invalid reading metadata. Your existing details were kept.');
@@ -2339,13 +2339,13 @@ dialog h2 {
     }));
   }
   function renderReaderDisclosure() {
-    let detail='Use the local app for invoice reading. Uploading alone does not send your file.';
+    let detail='Use the local app for free OCR and optional local AI. Uploading alone does not send your file.';
     let footer='Website preview · samples and manual entry';
     if(aiConnection.localServer) {
-      const destination=aiConnection.data_destination || (aiConnection.provider==='ocr'?'local':aiConnection.provider || 'openai');
+      const destination=aiConnection.data_destination || (['ocr','ollama'].includes(aiConnection.provider)?'local':aiConnection.provider || 'openai');
       if(destination==='local') {
-        detail='Local OCR reads on this computer. Your invoice and recognized text stay on this device. No API key or per-read API charge.';
-        footer='Local OCR · invoice reading stays on this device';
+        detail=aiConnection.provider==='ollama'?'OCR and Ollama run on this computer. Your invoice and recognized text stay on this device. No API key or per-read API charge.':'Local OCR reads on this computer. Your invoice and recognized text stay on this device. No API key or per-read API charge.';
+        footer=aiConnection.provider==='ollama'?'Local AI · OCR and Ollama keep invoice reading on this device':'Local OCR · invoice reading stays on this device';
       } else if(destination==='groq') {
         detail='Read invoice recognizes text locally, then sends that text to Groq for AI assistance. The image or PDF stays on this device. Groq usage limits apply. Uploading alone does not send anything.';
         footer='Groq AI · recognized text is sent only when you click Read';
@@ -2362,9 +2362,12 @@ dialog h2 {
     try {
       aiConnection=window.RasamAI?await window.RasamAI.status():{configured:false,localServer:false};
       const provider=aiConnection.provider || 'openai';
-      $('ai-connection-title').textContent=aiConnection.configured?(provider==='ocr'?'Local OCR ready':provider==='groq'?'Groq AI key configured':'OpenAI AI key configured'):aiConnection.localServer?(provider==='ocr'?'Set up local text recognition':'Set up '+(provider==='groq'?'Groq AI':'OpenAI AI')+' in the launcher'):'Open the local app for free invoice reading';
+      const titles={ocr:'Local OCR ready',ollama:'Local AI ready',groq:'Groq AI key configured',openai:'OpenAI AI key configured'};
+      const setupTitles={ocr:'Set up local text recognition',ollama:'Set up local AI with Ollama',groq:'Set up Groq AI in the launcher',openai:'Set up OpenAI AI in the launcher'};
+      $('ai-connection-title').textContent=aiConnection.configured?titles[provider]:aiConnection.localServer?setupTitles[provider]:'Open the local app for free invoice reading';
       const message=typeof aiConnection.message==='string'?aiConnection.message:'';
-      $('ai-connection-detail').textContent=aiConnection.configured?(provider==='ocr'?(message || 'Read a PDF or image with local text recognition. Review every field before approval.'):`${message || 'Upload a file, then choose Read invoice. Your first read tests the key.'}${aiConnection.model ? ' Model: '+aiConnection.model+'.' : ''}`):aiConnection.localServer?(message || 'Follow the local app setup guide, then restart the launcher. Samples and manual entry remain available.'):'Install the free local reader and run the launcher on your computer. This website preview supports samples and manual entry.';
+      const readyDetail=provider==='ocr'?'Read a PDF or image with local text recognition. Review every field before approval.':provider==='ollama'?'Upload a file, then choose Read invoice. OCR and AI run locally. Review every field before approval.':'Upload a file, then choose Read invoice. Your first read tests the key.';
+      $('ai-connection-detail').textContent=aiConnection.configured?`${message || readyDetail}${provider!=='ocr' && aiConnection.model ? ' Model: '+aiConnection.model+'.' : ''}`:aiConnection.localServer?(message || 'Follow the local app setup guide, then restart the launcher. Samples and manual entry remain available.'):'Install the free local reader and optional Ollama AI, then run the launcher on your computer. This website preview supports samples and manual entry.';
     } catch(error) {
       aiConnection={configured:false,localServer:false};
       $('ai-connection-title').textContent='The local reader is not connected';
@@ -2403,9 +2406,9 @@ dialog h2 {
       }
     } catch(error) {
       item.aiStatus='error';item.aiError=error.message||'Invoice reading failed. Your existing details were kept.';
-      if(['not_configured','ocr_unavailable','authentication','authentication_failed','invalid_api_key'].includes(error.code)) {
+      if(['not_configured','ocr_unavailable','ollama_unavailable','ollama_model_missing','authentication','authentication_failed','invalid_api_key'].includes(error.code)) {
         aiConnection.configured=false;
-        $('ai-connection-title').textContent=requestProvider==='ocr'?'Local OCR needs attention':(requestProvider==='groq'?'Groq AI':'OpenAI AI')+' key needs attention';
+        $('ai-connection-title').textContent=requestProvider==='ocr'?'Local OCR needs attention':requestProvider==='ollama'?'Local AI needs attention':(requestProvider==='groq'?'Groq AI':'OpenAI AI')+' key needs attention';
         $('ai-connection-detail').textContent=item.aiError;
         $('reader-setup-link').hidden=false;
       }

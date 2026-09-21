@@ -23,7 +23,23 @@ python3.11 setup_ocr.py
 
 Current Paddle installers support 64-bit Windows/Linux PCs and Apple Silicon Macs. See the [workbench setup guide](workbench/README.md) for platform notes, a lighter setup, and troubleshooting.
 
-## Add AI help, optionally
+## Add free AI on your computer
+
+Rasam can use **Ollama + Qwen3** to organize recognized text into invoice fields. This runs on your computer and needs no API key or paid plan.
+
+1. Complete OCR setup above, then install [Ollama](https://ollama.com/download) and open it.
+2. In Command Prompt on Windows or Terminal on Mac, download the model once:
+
+   ```sh
+   ollama pull qwen3:4b-instruct-2507-q4_K_M
+   ```
+
+3. Run **Start-Rasam-Local-AI-Windows.bat** or **Start-Rasam-Local-AI-Mac.command** from `workbench`.
+4. Upload an invoice, click **Read invoice**, and review the draft before approving it.
+
+The [model download](https://ollama.com/library/qwen3:4b-instruct-2507-q4_K_M) is about 2.5 GB; running it also needs working memory. Speed depends on your computer, and CPU reading can be slow. Initial software/model downloads need internet access. Invoice reading uses the local model, with no per-invoice API fee. The [full setup guide](workbench/README.md#free-local-ai-with-ollama) explains how to disable Ollama cloud features and troubleshoot setup.
+
+## Optional cloud AI
 
 After OCR setup, run the **Start-Rasam-Groq** launcher for your system. Enter your own Groq API key at the hidden terminal prompt. This sends the extracted text to Groq to organize it into invoice fields; it does not send the PDF or image. A blank key returns to local OCR.
 

@@ -17,33 +17,45 @@ from rasam_ai import (DEFAULT_MODEL, MAX_JSON_BYTES, ExtractionError,
                       OpenAIExtractor, validate_invoice, validate_upload)
 from rasam_groq import DEFAULT_GROQ_MODEL, GroqTextExtractor
 from rasam_ocr import local_ocr_status, read_document
+from rasam_ollama import DEFAULT_OLLAMA_MODEL, OllamaTextExtractor, ollama_status
 from rasam_text import draft_from_text
 
 
 def create_server(app_path, port=0, api_key=None, model=None, extractor=None,
-                  provider='openai', ocr_reader=None, ocr_status=None):
+                  provider='openai', ocr_reader=None, ocr_status=None, ollama_info=None):
     """Create a loopback server without starting its event loop.
 
     Engines/status are injectable for offline tests. The CLI defaults to local
     OCR; the OpenAI function default preserves the original integration API.
     """
     app = Path(app_path).resolve()
-    if provider not in ('ocr', 'groq', 'openai'):
+    if provider not in ('ocr', 'ollama', 'groq', 'openai'):
         raise ValueError('Unknown invoice reader provider')
     key = (api_key or '').strip()
     if key and (not key.isascii() or '\r' in key or '\n' in key):
         raise ValueError('Invalid API key configuration')
-    defaults = {'ocr': 'local-ocr', 'groq': DEFAULT_GROQ_MODEL, 'openai': DEFAULT_MODEL}
+    defaults = {'ocr': 'local-ocr', 'ollama': DEFAULT_OLLAMA_MODEL,
+                'groq': DEFAULT_GROQ_MODEL, 'openai': DEFAULT_MODEL}
     chosen_model = (model or defaults[provider]).strip() or defaults[provider]
     local_status = ocr_status if ocr_status is not None else local_ocr_status()
-    configured = bool(key) if provider == 'openai' else bool(local_status['available'] and (provider == 'ocr' or key))
+    local_ai = (ollama_info if ollama_info is not None else ollama_status(chosen_model)) if provider == 'ollama' else None
+    if provider == 'openai':
+        configured = bool(key)
+    elif provider == 'ollama':
+        configured = bool(local_status['available'] and local_ai['available'])
+    else:
+        configured = bool(local_status['available'] and (provider == 'ocr' or key))
     engine = extractor
     if configured and engine is None and provider != 'ocr':
-        engine = (GroqTextExtractor if provider == 'groq' else OpenAIExtractor)(key, chosen_model)
+        engine = (OllamaTextExtractor(chosen_model) if provider == 'ollama' else
+                  (GroqTextExtractor if provider == 'groq' else OpenAIExtractor)(key, chosen_model))
     local_reader = ocr_reader or read_document
-    labels = {'ocr': 'Local OCR', 'groq': 'Local OCR + Groq', 'openai': 'OpenAI'}
+    labels = {'ocr': 'Local OCR', 'ollama': 'Local OCR + Ollama',
+              'groq': 'Local OCR + Groq', 'openai': 'OpenAI'}
     message = local_status['message']
-    if provider == 'groq':
+    if provider == 'ollama':
+        message += ' ' + local_ai['message']
+    elif provider == 'groq':
         message += (' Groq key configured; recognized text is sent to Groq when you read.' if key else
                     ' Restart with --provider groq and enter a Groq API key, or choose local OCR.')
     elif provider == 'openai':
@@ -59,11 +71,11 @@ def create_server(app_path, port=0, api_key=None, model=None, extractor=None,
         source_text = result['text']
         warnings = list(result.get('warnings', []))
         metadata = {'provider': 'ocr', 'engine': result['engine'], 'source_text': source_text}
-        if provider == 'groq':
+        if provider in ('ollama', 'groq'):
             try:
                 invoice = validate_invoice(engine(source_text))
                 invoice['warnings'] = (warnings + invoice['warnings'])[:30]
-                metadata.update(provider='groq', engine=result['engine'] + ' + ' + chosen_model)
+                metadata.update(provider=provider, engine=result['engine'] + ' + ' + chosen_model)
                 return validate_invoice(invoice), metadata
             except ExtractionError as exc:
                 warnings.insert(0, exc.message + ' Showing a local OCR draft; AI assistance was not applied.')
@@ -128,7 +140,8 @@ def create_server(app_path, port=0, api_key=None, model=None, extractor=None,
                 self._send(200, {'configured': configured, 'model': chosen_model,
                                  'csrf_token': csrf_token, 'provider': provider,
                                  'label': labels[provider], 'message': message, 'ocr': local_status,
-                                 'data_destination': 'local' if provider == 'ocr' else provider}, head=head)
+                                 'ollama': local_ai,
+                                 'data_destination': 'local' if provider in ('ocr', 'ollama') else provider}, head=head)
             elif path in ('/', '/Rasam.html'):
                 try:
                     content = app.read_bytes()
@@ -217,9 +230,9 @@ def main():
     parser.add_argument('--no-browser', action='store_true')
     parser.add_argument('--no-key-prompt', action='store_true',
                         help='Read the selected provider key from the environment without prompting.')
-    parser.add_argument('--provider', choices=('ocr', 'groq', 'openai'),
+    parser.add_argument('--provider', choices=('ocr', 'ollama', 'groq', 'openai'),
                         default=os.environ.get('RASAM_PROVIDER', 'ocr'),
-                        help='ocr is free and local; groq adds optional cloud AI; openai is a paid alternative.')
+                        help='ocr and ollama run locally for free; groq and openai are optional cloud readers.')
     args = parser.parse_args()
     app = Path(__file__).resolve().parent / 'Rasam.html'
     if not app.is_file():
@@ -227,13 +240,14 @@ def main():
     if not 0 <= args.port <= 65535:
         parser.error('Port must be between 0 and 65535.')
     provider = args.provider
-    if provider not in ('ocr', 'groq', 'openai'):
-        parser.error('RASAM_PROVIDER must be ocr, groq or openai.')
+    if provider not in ('ocr', 'ollama', 'groq', 'openai'):
+        parser.error('RASAM_PROVIDER must be ocr, ollama, groq or openai.')
     key_name = 'GROQ_API_KEY' if provider == 'groq' else 'OPENAI_API_KEY'
-    api_key = os.environ.get(key_name, '').strip() if provider != 'ocr' else ''
+    api_key = os.environ.get(key_name, '').strip() if provider in ('groq', 'openai') else ''
     model = (os.environ.get('GROQ_MODEL', DEFAULT_GROQ_MODEL) if provider == 'groq' else
-             os.environ.get('OPENAI_MODEL', DEFAULT_MODEL) if provider == 'openai' else 'local-ocr')
-    if provider != 'ocr' and not api_key and not args.no_key_prompt and sys.stdin.isatty():
+             os.environ.get('OPENAI_MODEL', DEFAULT_MODEL) if provider == 'openai' else
+             os.environ.get('OLLAMA_MODEL', DEFAULT_OLLAMA_MODEL) if provider == 'ollama' else 'local-ocr')
+    if provider in ('groq', 'openai') and not api_key and not args.no_key_prompt and sys.stdin.isatty():
         label = 'Groq' if provider == 'groq' else 'OpenAI'
         print('Enter your {} API key here. It is hidden and kept only in memory.'.format(label))
         print('Groq receives recognized text and has free-tier limits.' if provider == 'groq' else
@@ -259,6 +273,9 @@ def main():
     print('Rasam is running at ' + url, flush=True)
     if provider == 'ocr':
         print('Local OCR: invoice content stays on this computer. ' + local_ocr_status()['message'], flush=True)
+    elif provider == 'ollama':
+        print('Local OCR + Ollama: invoice content stays on this computer. No API key or API charges.', flush=True)
+        print('Use the app status to check that OCR and the selected local Ollama model are ready.', flush=True)
     else:
         print('{}: {}.'.format(provider, 'key configured' if api_key else 'key missing'), flush=True)
         print('Each read sends recognized text to Groq.' if provider == 'groq' else

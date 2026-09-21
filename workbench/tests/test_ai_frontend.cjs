@@ -441,6 +441,100 @@ test('A Groq fallback displays the warning and exports the actual local OCR prov
   assert.doesNotMatch(sheet,/AI-assisted/);
 });
 
+test('Ollama is disclosed as local AI and still requires review before AI-assisted export', async () => {
+  const ui=await app({
+    status:async()=>({configured:true,localServer:true,provider:'ollama',data_destination:'local',model:'qwen-local-test',csrf_token:'local-ai-token'}),
+    extract:async()=>reading({reading:{provider:'ollama',engine:'Tesseract + qwen-local-test',source_text:'Invoice TEST-001\nTotal 115.00 SAR'}})
+  });
+  assert.equal(ui.get('ai-connection-title').textContent,'Local AI ready');
+  assert.match(ui.get('ai-connection-detail').textContent,/OCR and AI run locally/);
+  assert.match(ui.get('ai-connection-detail').textContent,/qwen-local-test/);
+  assert.doesNotMatch(ui.get('ai-connection-detail').textContent,/tests the key/);
+  assert.match(ui.get('reader-disclosure').textContent,/OCR and Ollama run on this computer/);
+  assert.match(ui.get('reader-disclosure').textContent,/No API key or per-read API charge/);
+  assert.doesNotMatch(ui.get('reader-disclosure').textContent,/Groq|OpenAI/);
+  assert.match(ui.get('reader-footer').textContent,/Local AI/);
+  await ui.upload();
+  await ui.read();
+  assert.equal(ui.calls[0][2],'local-ai-token');
+  assert.match(ui.get('selected-meta').textContent,/AI-assisted draft/);
+  assert.match(ui.get('reading-text-detail').textContent,/Tesseract \+ qwen-local-test/);
+  assert(ui.get('export-button').disabled,'Local AI cannot bypass human review');
+  await ui.approve();
+  await ui.get('export-button').click();
+  const sheet=zipEntry(await ui.downloads[0].blob.arrayBuffer(),'xl/worksheets/sheet1.xml');
+  assert.match(sheet,/AI-assisted, human reviewed/);
+});
+
+test('An unavailable Ollama reader shows local setup instructions and keeps manual entry usable', async () => {
+  const ui=await app({status:async()=>({configured:false,localServer:true,provider:'ollama',data_destination:'local',csrf_token:'token',message:'Start Ollama and download the local model.'})});
+  assert.equal(ui.get('ai-connection-title').textContent,'Set up local AI with Ollama');
+  assert.match(ui.get('ai-connection-detail').textContent,/Start Ollama/);
+  assert.doesNotMatch(ui.get('ai-connection-title').textContent,/key/);
+  assert.match(ui.get('reader-disclosure').textContent,/stay on this device/);
+  await ui.upload();
+  assert(ui.get('read-ai-button').disabled);
+  assert.equal(ui.get('reader-setup-link').hidden,false);
+  await ui.fillInvoice();
+  await ui.approve();
+  assert.equal(ui.get('selected-status').textContent,'Approved');
+  assert.equal(ui.calls.length,0);
+});
+
+test('An Ollama fallback shows OCR provenance and does not suggest a cloud reader', async () => {
+  const warning='Ollama could not finish. Showing a local OCR draft; review every field.';
+  const ui=await app({
+    status:async()=>({configured:true,localServer:true,provider:'ollama',data_destination:'local',model:'qwen-local-test',csrf_token:'token'}),
+    extract:async()=>reading({warnings:[warning],reading:{provider:'ocr',engine:'Local OCR',source_text:'Invoice TEST-001'}})
+  });
+  await ui.upload();
+  await ui.read();
+  assert.equal(ui.calls.length,1);
+  assert.match(ui.get('ai-feedback').textContent,/Ollama could not finish/);
+  assert.match(ui.get('selected-meta').textContent,/OCR draft/);
+  assert.doesNotMatch(ui.get('reader-disclosure').textContent,/Groq|OpenAI/);
+  assert(ui.get('export-button').disabled);
+  await ui.approve();
+  await ui.get('export-button').click();
+  const sheet=zipEntry(await ui.downloads[0].blob.arrayBuffer(),'xl/worksheets/sheet1.xml');
+  assert.match(sheet,/OCR-assisted, human reviewed/);
+  assert.doesNotMatch(sheet,/AI-assisted/);
+});
+
+test('An OCR fallback after Ollama assistance revokes approval and preserves earlier AI provenance', async () => {
+  let fallback=false;
+  const ui=await app({
+    status:async()=>({configured:true,localServer:true,provider:'ollama',data_destination:'local',model:'qwen-local-test',csrf_token:'token'}),
+    extract:async()=>reading({warnings:fallback?['Ollama could not finish. Local OCR draft.']:[],reading:{provider:fallback?'ocr':'ollama',engine:'Local reader',source_text:'Invoice TEST-001'}})
+  });
+  await ui.upload();
+  await ui.read();
+  await ui.approve();
+  fallback=true;
+  await ui.read();
+  assert.equal(ui.get('selected-status').textContent,'Needs review');
+  assert.equal(ui.get('review-confirm').checked,false);
+  assert(ui.get('export-button').disabled);
+  await ui.approve();
+  await ui.get('export-button').click();
+  const sheet=zipEntry(await ui.downloads[0].blob.arrayBuffer(),'xl/worksheets/sheet1.xml');
+  assert.match(sheet,/AI-assisted, human reviewed/);
+});
+
+test('Ollama connection errors never request an API key', async () => {
+  const ui=await app({
+    status:async()=>({configured:true,localServer:true,provider:'ollama',data_destination:'local',csrf_token:'token'}),
+    extract:async()=>{const error=new Error('Start Ollama and retry.');error.code='ollama_unavailable';throw error;}
+  });
+  await ui.upload();
+  await ui.read();
+  assert.equal(ui.get('ai-connection-title').textContent,'Local AI needs attention');
+  assert.match(ui.get('ai-connection-detail').textContent,/Start Ollama/);
+  assert(ui.get('read-ai-button').disabled);
+  assert.equal(ui.get('reader-setup-link').hidden,false);
+  assert.doesNotMatch(ui.get('ai-connection-title').textContent,/key/);
+});
+
 function bridge(options = {}) {
   const requests = [];
   const reads = [];
@@ -530,6 +624,19 @@ test('Bridge validates and passes OCR metadata while excluding unknown metadata 
     const bad=bridge({fetch:async()=>({ok:true,json:async()=>({invoice:reading(),reading:invalid})})});
     await assert.rejects(()=>bad.api.extract(file(),'image/png','token'),/invalid reading metadata/);
   }
+});
+
+test('Bridge accepts Ollama status and metadata without making requests outside the local app', async () => {
+  const metadata={provider:'ollama',engine:'Local OCR + qwen-local-test',source_text:'فاتورة\nTotal 115.00 SAR'};
+  const client=bridge({fetch:async(url)=>({ok:true,json:async()=>url==='/api/status'?{configured:true,provider:'ollama',model:'qwen-local-test',csrf_token:'token'}:{invoice:reading(),reading:metadata}})});
+  const status=await client.api.status();
+  assert.equal(status.provider,'ollama');
+  assert.equal(status.data_destination,'local','Ollama defaults to local disclosure when a destination is omitted');
+  const result=await client.api.extract(file(),'image/png',status.csrf_token);
+  assert.equal(result.reading.provider,'ollama');
+  assert.equal(result.reading.source_text,metadata.source_text);
+  assert.deepEqual(client.requests.map(item=>item.url),['/api/status','/api/extract']);
+  assert(!client.requests.some(item=>Object.keys(item.request.headers || {}).some(key=>/authorization|api.key/i.test(key))));
 });
 
 (async () => {
