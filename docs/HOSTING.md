@@ -1,41 +1,44 @@
-# Hosting Rasam
+# GitHub Pages hosting
 
-Use GitHub to keep the code and Cloudflare Pages to host the landing page. The public files are all in `site/`.
+The website is prepared on the `gh-pages` branch. That branch contains the contents of `site/` at its root, plus `.nojekyll` so GitHub serves the files directly.
 
-## Cloudflare Pages setup
+## Activate the website
 
-1. In your Cloudflare dashboard, open **Workers & Pages** and choose **Create application**.
-2. Select **Pages**, then **Import an existing Git repository**.
-3. Connect GitHub and select **20SHA07/Rasam**.
-4. Use these settings:
+1. Open [Rasam → Settings → Pages](https://github.com/20SHA07/Rasam/settings/pages).
+2. Under **Build and deployment**, set **Source** to **Deploy from a branch**.
+3. Select the **gh-pages** branch and **/(root)** folder.
+4. Click **Save**.
 
-| Setting | Value |
+GitHub will build and deploy the site. When deployment succeeds, the Pages settings screen shows the live address:
+
+**https://20SHA07.github.io/Rasam/**
+
+The manual workbench preview is at:
+
+**https://20SHA07.github.io/Rasam/workbench.html**
+
+The address may return 404 until Pages is enabled and the first deployment finishes. Check the [Actions tab](https://github.com/20SHA07/Rasam/actions) for deployment progress or errors.
+
+See [GitHub's publishing-source instructions](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site).
+
+## Update the website
+
+The editable source is in `site/` on `main`. The publishing branch contains those same files at its root:
+
+| Source on `main` | File on `gh-pages` |
 | --- | --- |
-| Production branch | `main` |
-| Framework preset | None |
-| Root directory | Leave at repository root |
-| Build command | `exit 0` |
-| Build output directory | `site` |
-| Environment variables | None |
+| `site/index.html` | `index.html` |
+| `site/styles.css` | `styles.css` |
+| `site/script.js` | `script.js` |
+| `site/favicon.svg` | `favicon.svg` |
+| `site/workbench.html` | `workbench.html` |
 
-5. Review the settings and deploy when ready to make the page public.
+After editing the source, copy the updated files to `gh-pages` and commit them there. Keep `.nojekyll` at the branch root. GitHub Pages publishes updates pushed to that branch; changing `main/site/` alone does not update the live site.
 
-Cloudflare supplies the actual `pages.dev` address after deployment. A GitHub repository URL is a code page, not the live website address. No deployment or custom domain is created merely by adding this code to GitHub.
+Only public website files belong on `gh-pages`. Customer invoices and API keys must stay outside the repository.
 
-The `site/index.html` file must remain at the top of the output directory. It links to `styles.css`, `script.js`, `favicon.svg`, and `workbench.html` using relative paths, so the same files also work under a project subpath.
+## What works online
 
-See [Cloudflare's static HTML deployment instructions](https://developers.cloudflare.com/pages/framework-guides/deploy-anything/).
+The landing page, sample/manual invoice review, and Excel export work as static browser pages. Contact buttons open an email draft to `rasam@polsia.app`.
 
-## What about GitHub Pages?
-
-GitHub Pages can serve static project websites. It cannot run the Python server or securely hold an API key for the browser. GitHub also restricts using Pages as free hosting to run an online business or commercial SaaS. Use a suitable application host for Rasam as a business rather than assuming Pages covers the whole product.
-
-Sources: [What is GitHub Pages?](https://docs.github.com/en/pages/getting-started-with-github-pages/what-is-github-pages) and [GitHub Pages limits](https://docs.github.com/en/pages/getting-started-with-github-pages/github-pages-limits).
-
-## AI hosting is a later step
-
-The bundled workbench server intentionally listens only on your computer. It has no customer sign-in, company access controls, persistent database, or production operations setup. Leave it local while evaluating the prototype.
-
-A future hosted app needs a server-side API key, authenticated users, company-scoped data access, controlled document storage, and a reviewed retention policy. Those components belong outside the static `site` folder. Real invoices and model-training files must not be committed to the public repository.
-
-The current page's contact buttons open an email draft to `rasam@polsia.app`. They do not save submissions in a database. The static workbench does not offer a live AI endpoint.
+AI extraction runs through the separate local app in `workbench/`. GitHub Pages does not run the Python server. Publishing this website does not make a live AI endpoint available or require an API key in the page.

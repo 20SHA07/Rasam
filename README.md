@@ -2,11 +2,13 @@
 
 Invoice reading and review for GCC bookkeeping workflows. This repository contains the Rasam landing page and a working local prototype inspired by watching an accountant copy invoice details into Excel.
 
-The landing page recreates the dark green design at [rasam.polsia.io](https://rasam.polsia.io/) from the supplied screenshot and copy. Feature descriptions reflect the prototype's current behavior.
-
 ## Open the website
 
-Open `site/index.html` in a browser. No installation or build is required.
+GitHub Pages address: **[20SHA07.github.io/Rasam](https://20SHA07.github.io/Rasam/)**.
+
+For first-time activation, select the `gh-pages` branch and `/(root)` in [Settings → Pages](https://github.com/20SHA07/Rasam/settings/pages), then save. See [the hosting guide](docs/HOSTING.md).
+
+You can also open `site/index.html` locally in a browser. No installation or build is required.
 
 For a localhost preview, run this from the repository folder:
 
@@ -49,7 +51,9 @@ See [the invoice-learning plan](docs/INVOICE-LEARNING.md).
 
 ## Put the landing page online
 
-Keep the code in this GitHub repository and connect the `site` folder to a static host. [The hosting guide](docs/HOSTING.md) includes the exact Cloudflare Pages settings.
+The `gh-pages` branch contains the public website, ready for GitHub Pages. [The hosting guide](docs/HOSTING.md) covers activation and updates.
+
+The editable website source lives in `main/site/`. Publish changes to the `gh-pages` branch to update the live site.
 
 The local Python AI server is a separate component and is not suitable for public deployment as it stands. Publishing the landing page does not deploy the AI reader.
 
