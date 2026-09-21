@@ -11,7 +11,7 @@ import venv
 
 ROOT = Path(__file__).resolve().parent
 ENV = ROOT / '.venv'
-PADDLE_INDEX = 'https://www.paddlepaddle.org.cn/packages/stable/cpu/'
+PADDLE_INDEX = 'https://pypi.org/simple'
 BASIC_REQUIREMENTS = ['pypdfium2>=4.30,<6', 'Pillow>=10.4,<13']
 
 
