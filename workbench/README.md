@@ -152,6 +152,8 @@ The default model is `gpt-4.1-mini`, overridable with `OPENAI_MODEL`. The backen
 
 **Setup or model download failed:** read the last installer error, check internet access and Python/platform compatibility, then rerun setup. Use `--basic` if Paddle is unsupported on your machine.
 
+**PaddleOCR could not load or read an image:** from the workbench folder, run `.\.venv\Scripts\python.exe check_ocr.py` on Windows, or `.venv/bin/python check_ocr.py` on Mac/Linux. The diagnostic prints package versions and the underlying error, loads the models, and tests reading a generated sample image. Loading may download public model weights. It does not read your invoices. Share the failed stage and traceback when requesting help. A successful check confirms that the sample can be processed; it is not an invoice accuracy benchmark.
+
 **Slow or unreadable document:** try one clear, upright invoice photo or a smaller PDF. Split files containing several invoices. The app keeps your manual edits when reading fails.
 
 **Amounts do not add up:** inspect the source for discounts, shipping, withholding, or multiple taxes. Rasam will not alter the numbers to force a match.
