@@ -287,7 +287,7 @@ test('Approval is blocked for a pending read, even through direct form submissio
   assert(ui.get('approve-button').disabled);
   assert(ui.get('export-button').disabled, 'Starting a new read revokes prior approval');
   await ui.approve();
-  assert.match(ui.get('form-errors').textContent, /Wait for AI reading/);
+  assert.match(ui.get('form-errors').textContent, /Wait for invoice reading/);
   assert.equal(ui.get('selected-status').textContent, 'Reading…');
   pending.resolve(reading());
   await request;
@@ -362,6 +362,85 @@ test('Duplicate uploads and duplicate supplier/invoice pairs still need attentio
   assert(ui.get('export-button').disabled);
 });
 
+test('Local OCR exposes recognized text safely and exports OCR provenance after review', async () => {
+  const sourceText='فاتورة ضريبية\nInvoice TEST-001\n<img src=x onerror="alert(1)">\nTotal 115.00 SAR';
+  const ui=await app({
+    status:async()=>({configured:true,localServer:true,provider:'ocr',data_destination:'local',model:'',csrf_token:'ocr-token'}),
+    extract:async()=>reading({reading:{provider:'ocr',engine:'Local OCR test engine',source_text:sourceText}})
+  });
+  await ui.upload();
+  assert.match(ui.get('reader-disclosure').textContent,/stay on this device/);
+  assert.doesNotMatch(ui.get('reader-disclosure').textContent,/sends.*Groq|sends.*OpenAI/);
+  await ui.read();
+  assert.equal(ui.calls[0][2],'ocr-token');
+  assert.equal(ui.get('reading-text').hidden,false);
+  assert.equal(ui.get('reading-source-text').textContent,sourceText);
+  assert.equal(ui.get('reading-source-text').innerHTML,'','Recognized text is assigned with textContent, never parsed as markup');
+  assert.match(ui.get('selected-meta').textContent,/OCR draft/);
+  assert(ui.get('export-button').disabled,'OCR never bypasses human approval');
+  await ui.approve();
+  await ui.get('export-button').click();
+  const sheet=zipEntry(await ui.downloads[0].blob.arrayBuffer(),'xl/worksheets/sheet1.xml');
+  assert.match(sheet,/OCR-assisted, human reviewed/);
+  assert.doesNotMatch(sheet,/AI-assisted/);
+  await ui.select('RAS-0001');
+  assert.equal(ui.get('reading-text').hidden,true,'Sample does not show the uploaded invoice text');
+  assert.equal(ui.get('reading-source-text').textContent,'');
+  await ui.select('RAS-0002');
+  assert.equal(ui.get('reading-source-text').textContent,sourceText);
+});
+
+test('Groq disclosure describes text-only transfer and later OCR keeps earlier AI provenance', async () => {
+  let provider='groq';
+  const ui=await app({
+    status:async()=>({configured:true,localServer:true,provider,data_destination:provider==='ocr'?'local':'groq',model:'test-model',csrf_token:'token'}),
+    extract:async()=>reading({reading:{provider,engine:'Test reader',source_text:'Invoice TEST-001'}})
+  });
+  assert.match(ui.get('reader-disclosure').textContent,/sends that text to Groq/);
+  assert.match(ui.get('reader-disclosure').textContent,/image or PDF stays on this device/);
+  await ui.upload();
+  await ui.read();
+  await ui.approve();
+  provider='ocr';
+  await ui.get('ai-check-connection').click();
+  await ui.read();
+  assert(ui.get('export-button').disabled,'A reread revokes prior approval');
+  await ui.approve();
+  await ui.get('export-button').click();
+  const sheet=zipEntry(await ui.downloads[0].blob.arrayBuffer(),'xl/worksheets/sheet1.xml');
+  assert.match(sheet,/AI-assisted, human reviewed/,'OCR reread cannot relabel previously AI-assisted details as OCR-only');
+});
+
+test('An unavailable local OCR reader leaves manual entry and review usable', async () => {
+  const ui=await app({status:async()=>({configured:false,localServer:true,provider:'ocr',data_destination:'local',model:'',csrf_token:'token',message:'Install the OCR language packs.'})});
+  await ui.upload();
+  assert(ui.get('read-ai-button').disabled);
+  assert.equal(ui.get('reader-setup-link').hidden,false);
+  await ui.fillInvoice();
+  await ui.approve();
+  assert.equal(ui.get('selected-status').textContent,'Approved');
+  assert.equal(ui.calls.length,0);
+});
+
+test('A Groq fallback displays the warning and exports the actual local OCR provenance', async () => {
+  const warning='Groq could not finish. This is a local OCR draft; review every field.';
+  const ui=await app({
+    status:async()=>({configured:true,localServer:true,provider:'groq',data_destination:'groq',model:'test-model',csrf_token:'token'}),
+    extract:async()=>reading({warnings:[warning],reading:{provider:'ocr',engine:'Local OCR',source_text:'Invoice TEST-001\nTotal 115.00 SAR'}})
+  });
+  await ui.upload();
+  await ui.read();
+  assert.match(ui.get('ai-feedback').textContent,/Groq could not finish/);
+  assert.match(ui.get('selected-meta').textContent,/OCR draft/);
+  assert.match(ui.get('reading-text-detail').textContent,/Local OCR/);
+  assert(ui.get('export-button').disabled);
+  await ui.approve();
+  await ui.get('export-button').click();
+  const sheet=zipEntry(await ui.downloads[0].blob.arrayBuffer(),'xl/worksheets/sheet1.xml');
+  assert.match(sheet,/OCR-assisted, human reviewed/);
+  assert.doesNotMatch(sheet,/AI-assisted/);
+});
+
 function bridge(options = {}) {
   const requests = [];
   const reads = [];
@@ -424,7 +503,7 @@ for (const [label, options] of [
 
 test('Bridge blocks extraction without a session token', async () => {
   const client = bridge();
-  await assert.rejects(() => client.api.extract(file(), 'image/png', ''), /Check the AI connection/);
+  await assert.rejects(() => client.api.extract(file(), 'image/png', ''), /Check the reader connection/);
   assert.equal(client.requests.length, 0);
 });
 
@@ -438,6 +517,19 @@ test('Bridge rejects malformed results before they can reach invoice fields', as
 test('Bridge preserves server authentication error codes for the connection UI', async () => {
   const client = bridge({ fetch: async () => ({ ok: false, json: async () => ({ error: 'Check the server API key.', code: 'authentication_failed' }) }) });
   await assert.rejects(() => client.api.extract(file(), 'image/png', 'token'), error => error.code === 'authentication_failed' && /API key/.test(error.message));
+});
+
+test('Bridge validates and passes OCR metadata while excluding unknown metadata properties', async () => {
+  const metadata={provider:'ocr',engine:'Local OCR',source_text:'المورد\nTotal 115.00',unexpected:'discard'};
+  const client=bridge({fetch:async()=>({ok:true,json:async()=>({invoice:reading(),reading:metadata})})});
+  const result=await client.api.extract(file(),'image/png','token');
+  assert.equal(result.reading.source_text,metadata.source_text);
+  assert.equal(result.reading.provider,'ocr');
+  assert.equal(result.reading.unexpected,undefined);
+  for(const invalid of [null,{...metadata,provider:'unknown'},{...metadata,engine:[]},{...metadata,source_text:{}},{...metadata,source_text:'x'.repeat(60001)}]) {
+    const bad=bridge({fetch:async()=>({ok:true,json:async()=>({invoice:reading(),reading:invalid})})});
+    await assert.rejects(()=>bad.api.extract(file(),'image/png','token'),/invalid reading metadata/);
+  }
 });
 
 (async () => {

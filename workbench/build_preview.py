@@ -18,7 +18,7 @@ html = html.replace("</head>", """<style>
 </head>""")
 html = html.replace("<body>", """<body>
   <div class="site-preview-banner" role="region" aria-label="Preview information">
-    <strong>Workbench preview · AI reading runs in the local app</strong>
+    <strong>Workbench preview · OCR and AI reading run in the local app</strong>
     <nav aria-label="Preview navigation"><a href="./index.html">Back to Rasam</a><a href="https://github.com/20SHA07/Rasam/tree/main/workbench">Get the local app</a></nav>
   </div>""")
 html = html.replace("return !global.RASAM_INLINE_PREVIEW && global.location &&", "return !global.RASAM_STATIC_PREVIEW && !global.RASAM_INLINE_PREVIEW && global.location &&")

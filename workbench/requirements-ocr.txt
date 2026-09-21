@@ -1,0 +1,5 @@
+# setup_ocr.py installs Paddle from its official CPU index first.
+paddlepaddle>=3.0,<4
+paddleocr>=3.0,<4
+pypdfium2>=4.30,<6
+Pillow>=10.4,<13

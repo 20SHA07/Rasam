@@ -1,29 +1,12 @@
 # GitHub Pages hosting
 
-The website is prepared on the `gh-pages` branch. That branch contains the contents of `site/` at its root, plus `.nojekyll` so GitHub serves the files directly.
+Rasam is published at **[20SHA07.github.io/Rasam](https://20SHA07.github.io/Rasam/)**. The [manual workbench preview](https://20SHA07.github.io/Rasam/workbench.html) is available there too.
 
-## Activate the website
-
-1. Open [Rasam → Settings → Pages](https://github.com/20SHA07/Rasam/settings/pages).
-2. Under **Build and deployment**, set **Source** to **Deploy from a branch**.
-3. Select the **gh-pages** branch and **/(root)** folder.
-4. Click **Save**.
-
-GitHub will build and deploy the site. When deployment succeeds, the Pages settings screen shows the live address:
-
-**https://20SHA07.github.io/Rasam/**
-
-The manual workbench preview is at:
-
-**https://20SHA07.github.io/Rasam/workbench.html**
-
-The address may return 404 until Pages is enabled and the first deployment finishes. Check the [Actions tab](https://github.com/20SHA07/Rasam/actions) for deployment progress or errors.
-
-See [GitHub's publishing-source instructions](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site).
+The publishing source is the `gh-pages` branch, with website files at its root. `.nojekyll` tells GitHub to serve those files directly. The [Actions tab](https://github.com/20SHA07/Rasam/actions) shows deployment progress after an update.
 
 ## Update the website
 
-The editable source is in `site/` on `main`. The publishing branch contains those same files at its root:
+Edit the source in `site/` on `main`, then copy changed files into the publishing branch:
 
 | Source on `main` | File on `gh-pages` |
 | --- | --- |
@@ -33,12 +16,22 @@ The editable source is in `site/` on `main`. The publishing branch contains thos
 | `site/favicon.svg` | `favicon.svg` |
 | `site/workbench.html` | `workbench.html` |
 
-After editing the source, copy the updated files to `gh-pages` and commit them there. Keep `.nojekyll` at the branch root. GitHub Pages publishes updates pushed to that branch; changing `main/site/` alone does not update the live site.
+Keep `.nojekyll` at the branch root. Changes to `main/site/` alone do not update the live website. To rebuild the workbench preview from its browser source, run `python3 build_preview.py` in `workbench/` before publishing.
 
-Only public website files belong on `gh-pages`. Customer invoices and API keys must stay outside the repository.
+For a local website preview, run this from the repository folder:
+
+```sh
+python3 -m http.server 8080 --bind 127.0.0.1 --directory site
+```
+
+Then open [localhost:8080](http://localhost:8080). On Windows, replace `python3` with `py -3`.
+
+If you fork the repository, select **Deploy from a branch → gh-pages → /(root)** in the fork's **Settings → Pages**. See [GitHub's publishing-source instructions](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site).
 
 ## What works online
 
-The landing page, sample/manual invoice review, and Excel export work as static browser pages. Feedback buttons open the Rasam GitHub issue form. Submissions there are public.
+The landing page, sample/manual invoice review, and Excel export work as static browser pages. Feedback buttons open the public Rasam GitHub issue form.
 
-AI extraction runs through the separate local app in `workbench/`. GitHub Pages does not run the Python server. Publishing this website does not make a live AI endpoint available or require an API key in the page.
+OCR and optional Groq/OpenAI reading run through the separate [local app](../workbench/README.md). GitHub Pages cannot run its Python server, and the public preview disables reading requests. Never put an API key in website code. Customer invoices and keys must stay outside the repository.
+
+The local server is designed for one computer. A future public reader will need a separate backend with authentication and suitable document storage.

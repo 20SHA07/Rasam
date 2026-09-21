@@ -1,101 +1,126 @@
-# Rasam v0.2: AI invoice reading
+# Rasam: free local invoice reading
 
-Rasam reads an invoice into a draft, shows its source alongside editable details, and exports only the invoices you approve. It is a local prototype, not a posted ledger or a tax-compliance system.
+Rasam reads an invoice into an editable draft, shows the source and recognized text, and exports only the records you approve. The default reader runs on your computer without an API key.
 
-## Turn on AI reading
+## First setup
 
-1. Download the repository ZIP and extract it, or clone the repository. Open the `workbench` folder.
-2. With Python 3 installed, double-click **Start-Rasam-Windows.bat** on Windows or **Start-Rasam-Mac.command** on Mac. You can also open a terminal in the `workbench` folder and run `python3 start_rasam.py` (`py -3 start_rasam.py` on Windows).
-3. Enter your OpenAI API key at the launcher's hidden terminal prompt. Characters do not appear while entering it. The key stays in the server process for this session and is not saved by Rasam. Leave it blank to use manual mode.
-4. The launcher opens Rasam at localhost. The app reports **AI key configured**. Your first read tests whether the key and model are usable.
-5. Upload one PDF or image and click **Read with AI**. Review the extracted values, missing fields, and warnings. Tick the review checkbox, approve, and export to Excel.
+1. Download and extract the repository ZIP, then open `workbench`. If you downloaded the standalone starter ZIP, its extracted folder is the workbench.
+2. Install **64-bit Python 3.11** from [python.org](https://www.python.org/downloads/). Python 3.10 to 3.13 are accepted by the setup script.
+3. Double-click **Setup-OCR-Windows.bat** or **Setup-OCR-Mac.command**. It creates a `.venv` folder, installs CPU OCR libraries, and downloads the public OCR model files. Keep internet access available and wait for **Setup finished**.
+4. Double-click **Start-Rasam-Windows.bat** or **Start-Rasam-Mac.command**. The launcher opens the localhost app. Keep its terminal window open.
+5. Upload one invoice, click **Read invoice**, and compare every suggested field with the source. Resolve warnings, tick the review checkbox, approve, and export to Excel.
 
-An OpenAI API account with usable billing/quota and model access is required. API usage charges apply. Create a key through the [official OpenAI API setup guide](https://developers.openai.com/api/docs/quickstart). Enter it only in your local launcher, never in a chat message or browser source code.
+No key is requested by the default launcher. Port 8000 is used when available; otherwise Rasam opens another local port. Press Ctrl+C in the terminal to stop the server. Export your records before closing or reloading the page.
 
-Keep the launcher window open while using the app. Press Ctrl+C to stop. Port 8000 is used when available; otherwise the launcher prints and opens another local port.
+On Linux, or from a terminal in the workbench folder:
 
-**The website preview and the preview inside ChatGPT cannot call the AI server.** AI reading works in the localhost app. Opening `Rasam.html` directly supports samples and manual entry, but does not connect to the server.
+```sh
+python3.11 setup_ocr.py
+.venv/bin/python start_rasam.py --provider ocr
+```
 
-## What makes the reading smarter
+On Windows, the equivalent commands are:
 
-- The model receives the original PDF or image, so it can use document layout alongside text.
-- Instructions cover mixed Arabic and English, Arabic-Indic and Persian digits, and decimal/grouping separators.
-- It distinguishes the supplier from the billed customer, the invoice number from purchase-order references, and the invoice date from the due date.
-- Unclear or missing fields remain empty and appear in review notes. The reader is instructed not to invent tax amounts from a presumed country rate or calculate missing values just to balance the invoice.
-- Net, tax, and total are independently checked. A mismatch blocks approval until you resolve it against the source.
-- Extracted line items appear as reference detail. They are not yet individual accounting entries and are not exported as separate rows.
-- Existing values are kept. If you edit while a reading is in progress, your edits remain intact and AI values appear as suggestions. A **Use value** button lets you apply each conflicting suggestion deliberately.
-- A returned draft never approves itself. Re-reading or editing an invoice requires another human review.
-- Files with multiple invoices are intended to be flagged for separation, not combined into one record. Split such documents before reading.
+```bat
+py -3.11 setup_ocr.py
+.venv\Scripts\python.exe start_rasam.py --provider ocr
+```
 
-These are implemented instructions, validation rules, and review behaviors. They are not measured accuracy claims. Test representative invoices before relying on the extraction.
+Current Paddle CPU packages support 64-bit x86_64 Windows/Linux and arm64 Apple Silicon Macs. Intel Macs need the alternative below. See the official [Windows](https://www.paddlepaddle.org.cn/documentation/docs/en/install/pip/windows-pip_en.html), [Linux](https://www.paddlepaddle.org.cn/documentation/docs/en/install/pip/linux-pip_en.html), and [macOS](https://www.paddlepaddle.org.cn/documentation/docs/en/install/pip/macos-pip_en.html) installation notes if a package fails to install. Hardware and Python compatibility can vary; the setup script reports failures without claiming the reader is ready.
 
-## Data and keys
+If a Mac does not open a `.command` launcher, use the terminal commands above from the extracted folder.
 
-Uploading adds a file to the browser session. Only **Read with AI** sends that selected file to the local server and then to OpenAI. The backend requests `store: false`; that request does not itself establish zero retention by the API provider. Rasam does not write invoice files or API keys to disk. The browser retains its working records until you close or reload the page, so export first.
+## Optional Groq AI
 
-The server listens on 127.0.0.1 and uses a session token plus host/origin checks. It serves only the app and its specific API routes. Keys, source files, and server code cannot be downloaded through it. This is a local development server, not a public hosted deployment.
+Local OCR provides the text. Groq can help turn that text into invoice fields, especially when labels and layout are less consistent.
 
-## Supported workflow and limits
+1. Create your own Groq account and API key through the [Groq console](https://console.groq.com/keys).
+2. After OCR setup, run **Start-Rasam-Groq-Windows.bat** or **Start-Rasam-Groq-Mac.command**.
+3. Enter the key at the hidden terminal prompt. Characters do not appear while entering it. Leave it blank to return to local OCR.
+4. Click **Read invoice** in the app. The status identifies the selected provider; the returned draft identifies what actually read the invoice.
 
-- PDF, JPEG, PNG, WebP; at most 20 MB per file and 50 files in the browser inbox.
-- One invoice per AI request, up to two concurrent server requests.
-- Supplier, invoice number, invoice date, currency, net, tax, and invoice total, plus optional user notes.
-- Supported register currencies: SAR, AED, USD, EUR, GBP. Other currencies are flagged instead of being silently substituted.
-- The register accepts non-negative amounts with up to two decimal places and a positive total. Credit notes and other structures need a future workflow. Extracted negative values are not silently changed into positive amounts.
-- Up to 50 line items as supporting detail. Individual line editing, chart-of-accounts coding, reconciliation, and ERP posting are not implemented.
-- Excel contains one row per approved invoice. Dates and amounts are typed cells. Origins distinguish samples, manual entries, and AI-assisted records reviewed by a person.
-- No persistent sessions, user accounts, or multi-user audit system.
+The terminal equivalent is `.venv/bin/python start_rasam.py --provider groq`, or `.venv\Scripts\python.exe start_rasam.py --provider groq` on Windows. Existing `GROQ_API_KEY` environment configuration also works. Rasam does not save a key entered at the prompt.
+
+Groq receives **extracted text only**, which can still contain invoice details and personal information. Review your organization's data policy and Groq's [data controls](https://console.groq.com/docs/your-data) before sending business invoices. Groq documents limited reliability/abuse retention and settings to opt out; Rasam does not configure those settings for you.
+
+Groq's free plan has [request and token limits](https://console.groq.com/docs/rate-limits). It is not unlimited, and account limits can differ. If the request fails, is rate-limited, or exceeds Rasam's text limit, the app shows a local OCR draft with a warning. It does not switch to a paid provider. No retry runs automatically.
+
+The default model is `qwen/qwen3.8-27b`; `GROQ_MODEL` can override it. The integration uses JSON mode followed by local schema and amount checks. That improves output structure but cannot guarantee correct invoice interpretation.
+
+## How the free reader works
+
+Rasam first extracts usable embedded text from text-only PDFs. Images and scanned pages use local PaddleOCR with its [Arabic PP-OCRv5 recognition model](https://huggingface.co/PaddlePaddle/arabic_PP-OCRv5_mobile_rec). An installed Tesseract can act as a fallback. The app shows which engine was used and warns if its Arabic language support is missing.
+
+Without an AI key, a conservative parser looks for explicit Arabic/English labels, invoice references, dates, currencies, and amounts. Ambiguous values stay empty. It does not guess a country tax rate or calculate a missing amount just to balance the invoice. It does not extract line items in local-only mode.
+
+Optional Groq organizes the OCR text. The separate OpenAI option reads the original image or PDF. Missing and uncertain fields remain review items. Existing edits are preserved if a read finishes while you are editing; conflicting suggestions have a **Use value** button. Reading or editing a record always requires another human review before approval.
+
+These are implemented behaviors, not measured accuracy claims. This version uses existing models and does not train a new model from your uploads. Company-specific learning from approved corrections remains a [planned feature](https://github.com/20SHA07/Rasam/blob/main/docs/INVOICE-LEARNING.md).
+
+## Lighter setup and Tesseract
+
+For text-only PDFs, or a computer where Paddle cannot be installed, run:
+
+```sh
+python3.11 setup_ocr.py --basic
+```
+
+This installs PDFium and Pillow into `.venv`. Text-only PDFs can then be read locally. Images and scans additionally require a separate [Tesseract installation](https://tesseract-ocr.github.io/tessdoc/Installation.html) and its English (`eng`) and Arabic (`ara`) language packs. The command `tesseract --list-langs` should show both. Rasam checks the installed languages and does not silently claim Arabic support when the pack is absent.
+
+Setup normally downloads Paddle models in advance. If that download was interrupted, run `.venv/bin/python rasam_ocr.py --download-models` on Mac/Linux, or `.venv\Scripts\python.exe rasam_ocr.py --download-models` on Windows, then restart Rasam. This downloads public model weights without using an invoice.
+
+## Data and limits
+
+Uploading adds a file to your browser session. **Read invoice** sends the selected file to the local server. In local mode, recognition and parsing stay on your computer. Temporary files are created for reading and cleaned up afterward. Downloaded OCR packages and model caches remain on your computer.
+
+The server listens only on `127.0.0.1`, with a session token and host/origin checks. It serves the app and its API routes, not keys or arbitrary files. It is intended for local use, not public hosting. The GitHub Pages and ChatGPT previews support samples/manual entry and Excel export; they cannot run this Python reader.
+
+| Limit | Current behavior |
+| --- | --- |
+| Uploads | PDF, JPEG, PNG, WebP; 20 MB per file; 50 files in the browser inbox |
+| Local reading | One invoice per file, at most 10 PDF pages, 20 megapixels per image, 60,000 recognized characters |
+| Reading time | Local OCR stops after about 120 seconds; the optional Groq step can take another 90 seconds |
+| Groq input | At most 18,000 extracted characters; longer documents fall back to the local draft |
+| Register | Supplier, invoice number/date, currency, net, tax, total, and optional notes |
+| Currencies | SAR, AED, USD, EUR, GBP; other currencies need manual handling |
+| Amounts | Non-negative, up to two decimal places, with a positive total; credit notes need a future workflow |
+| Excel | One row per approved invoice, typed dates/amounts, and source labels distinguishing OCR, AI, manual, and sample records |
+
+AI line items, when returned, are reference detail only and are not separate exported entries. Chart-of-accounts coding, ERP posting, tax clearance, saved sessions, and multi-user audit history are not implemented.
+
+## Existing OpenAI option
+
+Run `.venv/bin/python start_rasam.py --provider openai` or `.venv\Scripts\python.exe start_rasam.py --provider openai` on Windows. Enter an OpenAI API key at the hidden prompt, or configure `OPENAI_API_KEY` in your environment. This option sends the selected original file to OpenAI and requires usable API quota; API charges apply. It is never selected by the standard free-reader launcher.
+
+The default model is `gpt-4.1-mini`, overridable with `OPENAI_MODEL`. The backend requests `store: false`, which does not establish zero retention by the provider. Never put any API key in chat, browser code, or this repository.
 
 ## Troubleshooting
 
-**AI server is not connected:** run the included launcher, leave its window open, and use the localhost address it prints. A generic static-file server does not include AI reading.
+**Reader is unavailable:** run OCR setup, then restart the included launcher. A static file server and a directly opened `Rasam.html` cannot provide reading APIs.
 
-**Add your AI key:** restart the launcher and enter it at the hidden prompt. Existing `OPENAI_API_KEY` environment configuration is also supported.
+**Only text PDFs are available:** PDF support is installed but an image OCR engine is missing. Finish Paddle setup, or install Tesseract and its language packs.
 
-**Authentication, quota, or model error:** review your OpenAI API account and project access. The app keeps your file and manual edits so you can continue without a successful read.
+**Setup or model download failed:** read the last installer error, check internet access and Python/platform compatibility, then rerun setup. Use `--basic` if Paddle is unsupported on your machine.
 
-**Timeout or poor image:** try a clearer photo or a smaller PDF with one invoice. Requests are not automatically retried, to avoid unexpected repeat API usage.
+**Slow or unreadable document:** try one clear, upright invoice photo or a smaller PDF. Split files containing several invoices. The app keeps your manual edits when reading fails.
 
-**Amounts do not add up:** compare the source for discounts, shipping, withholding, or multiple taxes. The app will not change the original amounts to force a match.
+**Amounts do not add up:** inspect the source for discounts, shipping, withholding, or multiple taxes. Rasam will not alter the numbers to force a match.
 
-**Unclear date or currency:** supply the correct value after inspecting the original. No confidence score is presented as a guarantee.
+## Development and verification
 
-## Development
+`start_rasam.py` hosts the local app. `rasam_ocr.py` reads documents; `rasam_text.py` prepares local drafts; `rasam_groq.py` handles optional text-based AI; `rasam_ai.py` contains the shared schema and existing OpenAI reader. Browser source is in `source/`.
 
-There are no required third-party Python or browser libraries.
-
-- `Rasam.html`: bundled browser app.
-- `start_rasam.py`: local server and hidden-key startup.
-- `rasam_ai.py`: document validation, model request, extraction instructions, structured schema, and result validation.
-- `source/index.html`, `source/styles.css`, `source/app.js`: review interface and behavior.
-- `source/ai-client.js`: browser-to-local-server connection. It contains no secret.
-- `source/export.js`: standalone Excel writer.
-- `source/build.py`: bundles the browser source.
-- `tests/`: backend and frontend logic tests with mocked API responses.
-
-Rebuild the browser app from the `workbench` folder:
+Rebuild the local app and static preview:
 
 ```sh
-python3 source/build.py Rasam.html
+python3 build_preview.py
 ```
 
-To rebuild both the local app and the public manual preview, run `python3 build_preview.py` from the `workbench` folder. The public preview disables all AI API requests, even when served from localhost.
-
-Run the backend tests:
+Run the automated checks:
 
 ```sh
-python3 -m unittest discover -s tests -p 'test_ai_server.py' -v
-```
-
-If Node.js is available, run the frontend tests:
-
-```sh
+python3 -m unittest discover -s tests -p 'test_*.py' -v
 node tests/test_ai_frontend.cjs
 ```
 
-`OPENAI_MODEL` can override the default `gpt-4.1-mini` on the server. Use a model your project can access that supports document/image inputs and structured output. The default was checked against [official model documentation](https://developers.openai.com/api/docs/models/gpt-4.1-mini). The request follows the official [file-input](https://developers.openai.com/api/docs/guides/file-inputs), [image-input](https://developers.openai.com/api/docs/guides/images-vision), and [structured-output](https://developers.openai.com/api/docs/guides/structured-outputs) guidance.
-
-## Verification status
-
-All 36 automated checks passed: 16 backend tests and 20 frontend/bridge tests. They cover application behavior and server contracts with simulated AI responses; they do not measure AI reading accuracy. No live OpenAI extraction was run because this workspace has no configured API key. Full browser rendering, native downloads, and mobile layout remain unverified because a browser binary was unavailable in the build environment. The earlier invoice-review logic and generated Excel files were checked separately.
+Backend and frontend checks cover reading contracts, validation, fallback behavior, review safeguards, and exports. A generated English invoice was also read through local Tesseract and the localhost API. Paddle/Arabic model inference and live Groq/OpenAI requests have not been tested in the build environment. No representative GCC accuracy benchmark or full browser rendering test has been completed.

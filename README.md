@@ -1,69 +1,54 @@
 # Rasam
 
-Invoice reading and review for GCC bookkeeping workflows. This repository contains the Rasam landing page and a working local prototype inspired by watching an accountant copy invoice details into Excel.
+Invoice reading and review for GCC bookkeeping workflows. Rasam started with watching an accountant copy invoice details into Excel. The prototype reads documents, prepares editable drafts, and exports the records you approve.
 
-## Open the website
+**[Open the website](https://20SHA07.github.io/Rasam/)** · **[Try the manual workbench](https://20SHA07.github.io/Rasam/workbench.html)**
 
-GitHub Pages address: **[20SHA07.github.io/Rasam](https://20SHA07.github.io/Rasam/)**.
+## Start the free reader
 
-For first-time activation, select the `gh-pages` branch and `/(root)` in [Settings → Pages](https://github.com/20SHA07/Rasam/settings/pages), then save. See [the hosting guide](docs/HOSTING.md).
+1. Download this repository with **Code → Download ZIP**, extract it, and open the `workbench` folder.
+2. Install 64-bit Python, preferably Python 3.11. Run **Setup-OCR-Windows.bat** or **Setup-OCR-Mac.command** once. Setup downloads the OCR libraries and model files.
+3. Run **Start-Rasam-Windows.bat** or **Start-Rasam-Mac.command**. Rasam opens at localhost; keep the terminal window open.
+4. Upload one invoice, select **Read invoice**, review the source and suggested fields, then approve and export to Excel.
 
-You can also open `site/index.html` locally in a browser. No installation or build is required.
+The default reader runs locally and needs no API key. It uses existing OCR models, including PaddleOCR's Arabic model, plus a conservative parser for labelled invoice fields. Setup requires internet access; local invoice reading does not send documents to an AI service.
 
-For a localhost preview, run this from the repository folder:
-
-```sh
-python3 -m http.server 8080 --bind 127.0.0.1 --directory site
-```
-
-Then open **http://localhost:8080**. On Windows, use `py -3` instead of `python3`.
-
-The **Try workbench** button opens a static preview with sample invoices, manual editing, review, and Excel export. AI reading is available through the local app below.
-
-## Use the AI reader
-
-Open the `workbench` folder and run its Windows or Mac launcher, or:
+For Linux, or to use a terminal:
 
 ```sh
 cd workbench
-python3 start_rasam.py
+python3.11 setup_ocr.py
+.venv/bin/python start_rasam.py
 ```
 
-The launcher asks for your OpenAI API key in the terminal and opens the local app. Entering a key is optional; leave it blank for manual mode. An API account with usable quota is required for AI reading and API charges apply. Never add your key to this repository.
+Current Paddle installers support 64-bit Windows/Linux PCs and Apple Silicon Macs. See the [workbench setup guide](workbench/README.md) for platform notes, a lighter setup, and troubleshooting.
 
-See [workbench/README.md](workbench/README.md) for supported files, setup, data handling, and known limits.
+## Add AI help, optionally
+
+After OCR setup, run the **Start-Rasam-Groq** launcher for your system. Enter your own Groq API key at the hidden terminal prompt. This sends the extracted text to Groq to organize it into invoice fields; it does not send the PDF or image. A blank key returns to local OCR.
+
+Groq has a free plan with request and token limits. Rasam shows a local draft with a warning if the AI step fails or reaches a limit. Check your account's [current limits](https://console.groq.com/docs/rate-limits) and [data settings](https://console.groq.com/docs/your-data). The separate OpenAI reader remains an explicit, paid option.
 
 ## What works today
 
-- PDF and image uploads, one invoice per reading.
-- AI-assisted extraction designed for Arabic and English invoices, with uncertain fields left for review.
-- Source documents alongside editable invoice details.
-- Amount checks, duplicate warnings, and required human approval.
-- Excel export of approved invoice records.
+- PDF and image uploads, local text recognition, and optional AI extraction.
+- Arabic and English field handling, with missing or ambiguous values left for review.
+- Source documents and extracted text beside editable invoice details.
+- Amount checks, duplicate warnings, required human approval, and Excel export.
 
-The workbench is a prototype. It does not post journals to an ERP, provide tax clearance, learn automatically from previous invoices, or save an audit history across sessions. Arabic/GCC extraction accuracy has not yet been measured on a representative dataset.
+Arabic/GCC reading accuracy has not been measured on a representative dataset. Rasam does not post journals to an ERP, provide tax clearance, or preserve an audit history across sessions. Export before closing or reloading the app.
 
-## Learning from invoices
+Rasam does not yet learn from your invoice history. The next step is to store approved corrections separately for each company and use relevant examples when reading another invoice. Uploading files alone does not train a model. See the [invoice-learning plan](docs/INVOICE-LEARNING.md).
 
-Rasam can be extended to remember approved corrections for each company and retrieve relevant examples for the next invoice. That is the proposed next step, not a feature already running. Raw uploads alone do not train a model. Start with reviewed examples from one company before broadening across GCC countries.
+## Website and project files
 
-See [the invoice-learning plan](docs/INVOICE-LEARNING.md).
-
-## Put the landing page online
-
-The `gh-pages` branch contains the public website, ready for GitHub Pages. [The hosting guide](docs/HOSTING.md) covers activation and updates.
-
-The editable website source lives in `main/site/`. Publish changes to the `gh-pages` branch to update the live site.
-
-The local Python AI server is a separate component and is not suitable for public deployment as it stands. Publishing the landing page does not deploy the AI reader.
-
-## Project layout
+GitHub Pages serves the landing page and manual preview. OCR and AI reading run through the local app; GitHub Pages cannot run its Python server.
 
 | Path | Purpose |
 | --- | --- |
-| `site/` | Public landing page and manual workbench preview |
-| `workbench/` | Local AI app, launchers, source, and tests |
-| `docs/` | Hosting and invoice-learning plans |
+| `site/` | Editable public website and manual workbench preview |
+| `workbench/` | Local reader, setup, launchers, browser source, and tests |
+| `docs/` | Hosting and invoice-learning guides |
 | `scripts/build-landing.py` | Optional single-file landing-page export |
 
-No customer invoices, training data, or API keys are included. All example invoices are fictional.
+The `gh-pages` branch publishes the website. See the [hosting guide](docs/HOSTING.md) to update it. No customer invoices, training data, or API keys are included. All example invoices are fictional.

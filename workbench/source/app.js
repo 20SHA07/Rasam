@@ -1,6 +1,6 @@
 'use strict';
 (() => {
-  // AI requests go through the local server. Samples and manual entry stay offline.
+  // Readers run through the local server. Samples and manual entry stay offline.
   const $ = id => document.getElementById(id);
   const paths = {
     inbox: '<path d="M4 4h16l2 12v4H2v-4L4 4Z"/><path d="M2 15h6l2 3h4l2-3h6"/>',
@@ -95,7 +95,7 @@
   }
   function renderHeader(item) {
     $('selected-supplier').textContent = item.supplier || 'New invoice';
-    $('selected-meta').textContent = `${item.invoiceNumber || item.sourceFile} · ${item.mode === 'sample' ? 'Sample invoice' : item.mode === 'ai' ? 'AI draft · review required' : 'Manual entry'}`;
+    $('selected-meta').textContent = `${item.invoiceNumber || item.sourceFile} · ${item.mode === 'sample' ? 'Sample invoice' : item.mode === 'ai' ? 'AI-assisted draft · review required' : item.mode === 'ocr' ? 'OCR draft · review required' : 'Manual entry'}`;
     $('selected-status').textContent = item.aiStatus === 'reading' ? 'Reading…' : item.approved ? 'Approved' : 'Needs review';
     $('selected-status').classList.toggle('approved', item.approved);
     $('approve-button').disabled = item.approved || item.aiStatus === 'reading';
@@ -119,7 +119,7 @@
   }
   function errorsFor(item) {
     const issues = [];
-    if (item.aiStatus === 'reading') issues.push(['read-ai-button','Wait for AI reading to finish before approving.']);
+    if (item.aiStatus === 'reading') issues.push(['read-ai-button','Wait for invoice reading to finish before approving.']);
     if (!item.supplier.trim()) issues.push(['supplier','Enter the supplier name.']);
     if (!item.invoiceNumber.trim()) issues.push(['invoiceNumber','Enter the invoice number.']);
     if (!validDate(item.date)) issues.push(['date','Enter a valid invoice date (1900 or later).']);
@@ -149,9 +149,13 @@
   function renderAi(item) {
     const reading=item.aiStatus==='reading';
     $('read-ai-button').disabled=reading || item.mode==='sample' || !aiConnection.configured;
-    $('read-ai-button').innerHTML=icon('sparkles')+(reading?'Reading invoice…':item.aiResult?'Read again':'Read with AI');
+    $('read-ai-button').innerHTML=icon('sparkles')+(reading?'Reading invoice…':item.aiResult?'Read again':'Read invoice');
     $('remove-button').disabled=reading;
-    $('ai-read-state').textContent=reading?'Reading the document. Your edits will be kept.':item.mode==='sample'?'Samples are prefilled. Upload your own file to try AI.':!aiConnection.configured?'Set up the AI connection above, or use manual entry.':item.aiResult?'Review the draft and any notes below.':'Arabic and English · PDF or image';
+    $('ai-read-state').textContent=reading?'Reading the document. Your edits will be kept.':item.mode==='sample'?'Samples are prefilled. Upload your own file to try the reader.':!aiConnection.configured?'Set up the reader above, or use manual entry.':item.aiResult?'Review the draft and any notes below.':'Arabic and English · PDF or image';
+    renderReaderDisclosure();
+    $('reading-text').hidden=!item.reading?.source_text;
+    $('reading-source-text').textContent=item.reading?.source_text || '';
+    $('reading-text-detail').textContent=item.reading?.source_text ? `${item.reading.engine}. Compare this recognized text with the original; it can contain mistakes.` : '';
     const feedback=$('ai-feedback');
     const result=item.aiResult;
     const messages=[];
@@ -175,35 +179,60 @@
       if(!aiFields.includes(field))return;
       selected[field]=String(result[field]);selected.revision=(selected.revision||0)+1;
       selected.approved=false;selected.confirmed=false;selected.reviewedAt='';
-      render();tell('AI suggestion applied. Check it against the invoice.');
+      render();tell('Reading suggestion applied. Check it against the invoice.');
     }));
+  }
+  function renderReaderDisclosure() {
+    let detail='Use the local app for invoice reading. Uploading alone does not send your file.';
+    let footer='Website preview · samples and manual entry';
+    if(aiConnection.localServer) {
+      const destination=aiConnection.data_destination || (aiConnection.provider==='ocr'?'local':aiConnection.provider || 'openai');
+      if(destination==='local') {
+        detail='Local OCR reads on this computer. Your invoice and recognized text stay on this device. No API key or per-read API charge.';
+        footer='Local OCR · invoice reading stays on this device';
+      } else if(destination==='groq') {
+        detail='Read invoice recognizes text locally, then sends that text to Groq for AI assistance. The image or PDF stays on this device. Groq usage limits apply. Uploading alone does not send anything.';
+        footer='Groq AI · recognized text is sent only when you click Read';
+      } else {
+        detail='Read invoice sends this image or PDF to OpenAI. API usage charges apply. Uploading alone does not send it.';
+        footer='OpenAI AI · files are sent only when you click Read';
+      }
+    }
+    $('reader-disclosure').textContent=detail;
+    $('reader-footer').textContent=footer;
   }
   async function refreshConnection() {
     $('ai-check-connection').disabled=true;
     try {
       aiConnection=window.RasamAI?await window.RasamAI.status():{configured:false,localServer:false};
-      $('ai-connection-title').textContent=aiConnection.configured?'AI key configured':aiConnection.localServer?'Add your AI key in the launcher':'Open the localhost app for AI reading';
-      $('ai-connection-detail').textContent=aiConnection.configured?`Model: ${aiConnection.model}. Upload a file, then choose Read with AI. Your first read tests the key.`:aiConnection.localServer?'Restart the launcher and enter your OpenAI API key in its hidden prompt. Keep the key out of this chat.':'Extract the starter package and run its launcher. This chat preview and a directly opened HTML file support manual entry.';
+      const provider=aiConnection.provider || 'openai';
+      $('ai-connection-title').textContent=aiConnection.configured?(provider==='ocr'?'Local OCR ready':provider==='groq'?'Groq AI key configured':'OpenAI AI key configured'):aiConnection.localServer?(provider==='ocr'?'Set up local text recognition':'Set up '+(provider==='groq'?'Groq AI':'OpenAI AI')+' in the launcher'):'Open the local app for free invoice reading';
+      const message=typeof aiConnection.message==='string'?aiConnection.message:'';
+      $('ai-connection-detail').textContent=aiConnection.configured?(provider==='ocr'?(message || 'Read a PDF or image with local text recognition. Review every field before approval.'):`${message || 'Upload a file, then choose Read invoice. Your first read tests the key.'}${aiConnection.model ? ' Model: '+aiConnection.model+'.' : ''}`):aiConnection.localServer?(message || 'Follow the local app setup guide, then restart the launcher. Samples and manual entry remain available.'):'Install the free local reader and run the launcher on your computer. This website preview supports samples and manual entry.';
     } catch(error) {
       aiConnection={configured:false,localServer:false};
-      $('ai-connection-title').textContent='AI server is not connected';
+      $('ai-connection-title').textContent='The local reader is not connected';
       $('ai-connection-detail').textContent=error.message;
     } finally {
       $('ai-check-connection').disabled=false;
+      $('reader-setup-link').hidden=!!aiConnection.configured;
+      renderReaderDisclosure();
       if(current())renderAi(current());
     }
   }
   async function readWithAI() {
     const item=current();
     if(!item || !item.file || item.mode==='sample' || item.aiStatus==='reading')return;
-    if(!aiConnection.configured){tell('Set up your AI key in the launcher first.',true);return;}
+    if(!aiConnection.configured){tell('Set up the invoice reader in the local launcher first.',true);return;}
     const revision=item.revision||0;
+    const requestProvider=aiConnection.provider || 'openai';
     item.aiStatus='reading';item.aiError='';item.aiMessage='';item.approved=false;item.confirmed=false;item.reviewedAt='';
     renderHeader(item);renderList();renderExport();
     try {
       const result=await window.RasamAI.extract(item.file,item.fileType,aiConnection.csrf_token);
       if(!invoices.includes(item))return;
       item.aiResult=result;
+      item.reading=result.reading || {provider:requestProvider,engine:requestProvider==='ocr'?'Local OCR':'AI invoice reader',source_text:''};
       if(!result.is_invoice) {
         item.aiStatus='error';
         item.aiError='This file could not be treated as a single invoice. Try a clearer invoice or enter the details manually.';
@@ -212,17 +241,23 @@
         if((item.revision||0)===revision) {
           aiFields.forEach(field=>{if(!String(item[field]??'').trim() && result[field]!==null){item[field]=result[field];count++;}});
         }
-        item.mode='ai';item.aiStatus='done';
-        item.aiMessage=count?`${count} empty field${count===1?'':'s'} filled. Existing values were kept. Review the draft before approval.`:'Your existing values were kept. Open AI suggestions below to compare the reading.';
+        // A later OCR read must not erase earlier AI assistance from provenance.
+        item.mode=item.mode==='ai' || item.reading.provider!=='ocr'?'ai':'ocr';item.aiStatus='done';
+        item.aiMessage=count?`${count} empty field${count===1?'':'s'} filled. Existing values were kept. Review the draft before approval.`:'Your existing values were kept. Open reading suggestions below to compare the result.';
       }
     } catch(error) {
-      item.aiStatus='error';item.aiError=error.message||'AI reading failed. Your existing details were kept.';
-      if(['not_configured','authentication','authentication_failed','invalid_api_key'].includes(error.code)){aiConnection.configured=false;$('ai-connection-title').textContent='AI key needs attention';}
+      item.aiStatus='error';item.aiError=error.message||'Invoice reading failed. Your existing details were kept.';
+      if(['not_configured','ocr_unavailable','authentication','authentication_failed','invalid_api_key'].includes(error.code)) {
+        aiConnection.configured=false;
+        $('ai-connection-title').textContent=requestProvider==='ocr'?'Local OCR needs attention':(requestProvider==='groq'?'Groq AI':'OpenAI AI')+' key needs attention';
+        $('ai-connection-detail').textContent=item.aiError;
+        $('reader-setup-link').hidden=false;
+      }
     } finally {
       item.approved=false;item.confirmed=false;item.reviewedAt='';
       if(currentID===item.id){render();if(item.aiResult&&item.aiResult.field_warnings.length)$('ai-insights').open=true;}
       else {renderList();renderExport();if(current())renderAi(current());}
-      tell(item.aiError || 'AI reading finished. Review the invoice draft.',!!item.aiError);
+      tell(item.aiError || 'Invoice reading finished. Review the draft.',!!item.aiError);
     }
   }
   function render() {
@@ -232,7 +267,7 @@
     if (!item) return;
     clearErrors(); renderHeader(item); renderSource(item);
     fields.forEach(key => { $(key).value=item[key] ?? ''; });
-    $('entry-description').textContent=item.mode === 'sample' ? 'Example values are filled in. Compare them with the invoice.' : item.mode === 'ai' ? 'AI drafted these details. Check every field against the source.' : 'Read this invoice with AI, or enter its details manually.';
+    $('entry-description').textContent=item.mode === 'sample' ? 'Example values are filled in. Compare them with the invoice.' : item.mode === 'ai' ? 'AI helped draft these details. Check every field against the source.' : item.mode === 'ocr' ? 'Local text recognition drafted these details. Check every field against the source.' : 'Read this invoice, or enter its details manually.';
     updateAmountCheck(item);
   }
   fields.forEach(key => {
@@ -305,7 +340,7 @@
         const item={id:'RAS-'+String(nextID++).padStart(4,'0'),supplier:'',invoiceNumber:'',date:'',currency:'',net:'',vat:'',total:'',notes:'',mode:'manual',approved:false,confirmed:false,reviewedAt:'',revision:0,file,sourceFile:file.name,fileType:type,fileKey:`${file.name}:${file.size}:${file.lastModified}`,url:URL.createObjectURL(file)};
         invoices.push(item);currentID=item.id;added++;
       }
-      if(added){filter='all';render();tell(`${added} file${added===1?'':'s'} added. Choose Read with AI or enter details manually.`);}
+      if(added){filter='all';render();tell(`${added} file${added===1?'':'s'} added. Choose Read invoice or enter details manually.`);}
       if(skipped.length)tell((added?`${added} file${added===1?'':'s'} added. `:'')+skipped.slice(0,2).join(' '),true);
     } catch(error){console.error('Import failed',error);tell('A file could not be opened. Try uploading it again.',true);if(added)render();}
     finally {importInProgress=false;$('file-input').value='';}

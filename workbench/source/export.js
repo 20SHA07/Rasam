@@ -139,7 +139,7 @@
     ];
     invoices.forEach(function (invoice, index) {
       var row = index + 5;
-      var origin = invoice.mode === 'sample' ? 'Sample' : invoice.mode === 'ai' ? 'AI-assisted, human reviewed' : invoice.mode === 'manual' ? 'Manual entry' : 'Unspecified';
+      var origin = invoice.mode === 'sample' ? 'Sample' : invoice.mode === 'ocr' ? 'OCR-assisted, human reviewed' : invoice.mode === 'ai' ? 'AI-assisted, human reviewed' : invoice.mode === 'manual' ? 'Manual entry' : 'Unspecified';
       var cells = [
         dateCell('A' + row, invoice.date, false),
         textCell('B' + row, invoice.supplier),

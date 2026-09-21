@@ -1727,11 +1727,18 @@ dialog h2 {
   }
 }
 
-/* AI connection and review evidence */
+/* Reader connection and review evidence */
 .ai-connection { display:flex; justify-content:space-between; align-items:center; gap:16px; margin:-8px 0 20px; padding:13px 15px; border:1px solid #dce5d5; border-radius:7px; background:#fcfdf8; }
 .ai-connection strong { font-size:12px; font-weight:600; }
 .ai-connection p { font-size:11px; color:#6d8066; line-height:1.65; margin-top:3px; }
 .ai-connection .button { flex-shrink:0; }
+.reader-setup-link,.guide-steps a { color:var(--green); text-decoration:underline; text-underline-offset:3px; }
+.reader-setup-link { display:inline-block; margin-top:6px; font-size:11px; }
+.reading-text { margin:0 14px 16px; border-top:1px solid var(--border); padding-top:12px; font-size:11px; }
+.reading-text summary { cursor:pointer; font-weight:600; }
+.reading-text p { margin-top:8px; color:var(--muted); font-size:10px; }
+.reading-text pre { max-height:280px; overflow:auto; white-space:pre-wrap; overflow-wrap:anywhere; background:#fff; padding:12px; border:1px solid var(--border); border-radius:5px; font-family:inherit; font-size:12px; line-height:1.8; unicode-bidi:plaintext; }
+.reading-text pre:focus-visible { outline:3px solid #7ea78e; outline-offset:3px; }
 .ai-actions { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
 .ai-actions .button { font-size:11px; flex-shrink:0; }
 .ai-actions .button:disabled { opacity:.65; }
