@@ -63,6 +63,8 @@ Rasam connects only to Ollama at `127.0.0.1:11434`. It checks that the model is 
 
 The default model is `qwen3:4b-instruct-2507-q4_K_M`. Advanced users can select another installed local Qwen3 text model with `OLLAMA_MODEL`; Rasam requires local GGUF model metadata, the Qwen3 architecture, and support for a context of at least 16,384 tokens. Smaller supported Qwen3 models need careful invoice testing before use.
 
+If the default model times out on your Windows laptop, try the smaller [Qwen3 1.7B Q4 model](https://ollama.com/library/qwen3:1.7b-q4_K_M). Its download is about 1.4 GB; runtime memory use is higher. Download it once with `ollama pull qwen3:1.7b-q4_K_M`, then run **Start-Rasam-Light-AI-Windows.bat** from this folder. That launcher selects the smaller model each time it starts. It uses the same local-only connection, non-thinking requests, validation, and OCR fallback. It may make more extraction mistakes, and speed depends on your hardware; no invoice accuracy or latency benchmark has been completed for it. On other systems, select it with `OLLAMA_MODEL=qwen3:1.7b-q4_K_M` when running the local AI launcher. If it also times out, run `ollama ps` while a read is in progress and share the output to check CPU/GPU placement.
+
 To disable Ollama's cloud features for the Ollama app itself, add `"disable_ollama_cloud": true` to its `server.json` settings and restart Ollama. The file is `%USERPROFILE%\.ollama\server.json` on Windows or `~/.ollama/server.json` on Mac/Linux. If it does not exist, create it with:
 
 ```json
