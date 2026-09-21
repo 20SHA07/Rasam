@@ -83,8 +83,11 @@ class LocalAIContractTests(unittest.TestCase):
         self.assertIs(body['truncate'], False)
         self.assertIs(body['shift'], False)
         self.assertEqual(body['keep_alive'], 0)
-        self.assertEqual(body['options']['num_ctx'], CONTEXT_TOKENS)
+        self.assertEqual(body['options']['num_ctx'], 8192)
         self.assertEqual(body['options']['num_predict'], OUTPUT_TOKENS)
+        self.assertEqual(json.loads(body['messages'][0]['content'].rsplit('\n', 1)[1]),
+                         INVOICE_SCHEMA)
+        self.assertIn('line_items', body['format']['required'])
 
     def test_proxy_environment_cannot_change_the_request_destination(self):
         with mock.patch.dict(os.environ, {'HTTP_PROXY': 'http://example.invalid:8888',
@@ -158,10 +161,32 @@ class LocalAIContractTests(unittest.TestCase):
                     reader(text)
                 self.assertEqual(caught.exception.code, code)
         allowed = 'x' * MAX_OLLAMA_TEXT_BYTES
-        self.assertTrue(request_body(allowed)['messages'][1]['content'].endswith(allowed))
-        prompt = request_body(allowed)['messages']
-        self.assertEqual(sum(len(message['content'].encode('utf-8')) for message in prompt)
-                         + OUTPUT_TOKENS + rasam_ollama.TEMPLATE_MARGIN, CONTEXT_TOKENS)
+        body = request_body(allowed)
+        self.assertEqual(body['messages'][1]['content'], rasam_ollama._USER_PREFIX + allowed)
+        prompt = body['messages']
+        self.assertLessEqual(sum(len(message['content'].encode('utf-8')) for message in prompt)
+                             + OUTPUT_TOKENS + rasam_ollama.TEMPLATE_MARGIN,
+                             body['options']['num_ctx'])
+        self.assertEqual(MAX_OLLAMA_TEXT_BYTES, 7424)
+
+    def test_context_allocation_tracks_full_utf8_text_at_each_boundary(self):
+        overhead = (len((rasam_ollama._SYSTEM + rasam_ollama._USER_PREFIX).encode('utf-8'))
+                    + OUTPUT_TOKENS + rasam_ollama.TEMPLATE_MARGIN)
+        boundaries = [(8192 - overhead, 8192), (8192 - overhead + 1, 12288),
+                      (12288 - overhead, 12288), (12288 - overhead + 1, CONTEXT_TOKENS),
+                      (MAX_OLLAMA_TEXT_BYTES, CONTEXT_TOKENS)]
+        for size, context in boundaries:
+            self.assertGreater(size, 0)
+            for alphabet in ('english', 'arabic'):
+                with self.subTest(size=size, alphabet=alphabet):
+                    text = 'x' * size if alphabet == 'english' else 'ع' * (size // 2) + 'x' * (size % 2)
+                    self.assertEqual(len(text.encode('utf-8')), size)
+                    body = request_body(text)
+                    self.assertEqual(body['messages'][1]['content'], rasam_ollama._USER_PREFIX + text)
+                    self.assertEqual(body['options']['num_ctx'], context)
+                    self.assertLessEqual(overhead + size, context)
+                    self.assertFalse(body['truncate'])
+                    self.assertFalse(body['shift'])
 
     def test_unprinted_amounts_are_cleared_and_arabic_numbers_match(self):
         result = self.reader(reply())('Tax invoice Net ١٠٠٫٠٠ VAT rate 15%')
@@ -170,14 +195,34 @@ class LocalAIContractTests(unittest.TestCase):
         self.assertIsNone(result['total'])
         self.assertEqual({w['field'] for w in result['field_warnings']}, {'vat', 'total'})
 
-    def test_invalid_invoice_schema_is_never_returned_as_a_draft(self):
-        for changed in ({'total': 'NaN'}, {'currency': 'KWD'}, {'unexpected': True}):
-            with self.subTest(changed=changed):
+    def test_invalid_individual_fields_do_not_discard_valid_siblings(self):
+        for field, value in (('total', 'NaN'), ('currency', 'KWD')):
+            with self.subTest(field=field):
                 invoice = fixture()
-                invoice.update(changed)
+                invoice[field] = value
+                result = self.reader(reply(invoice))(TEXT)
+                self.assertIsNone(result[field])
+                for other in ('supplier', 'invoiceNumber', 'date', 'net', 'vat'):
+                    self.assertEqual(result[other], fixture()[other])
+                self.assertIn(field, {warning['field'] for warning in result['field_warnings']})
+
+    def test_unknown_keys_and_invalid_root_are_not_salvaged(self):
+        invoice = fixture()
+        invoice['unexpected'] = True
+        for invalid in (invoice, [fixture()], 'invoice', 42, None):
+            with self.subTest(invalid=invalid):
+                response = reply()
+                response['message']['content'] = json.dumps(invalid)
                 with self.assertRaises(ExtractionError) as caught:
-                    self.reader(reply(invoice))(TEXT)
+                    self.reader(response)(TEXT)
                 self.assertEqual(caught.exception.code, 'invalid_response')
+
+    def test_json_decimal_normalization_does_not_round_printed_amount(self):
+        response = reply()
+        response['message']['content'] = json.dumps(fixture()).replace(
+            '"100.00"', '100.1234567890123456789')
+        result = self.reader(response)(TEXT.replace('100.00', '100.1234567890123456789'))
+        self.assertEqual(result['net'], '100.1234567890123456789')
 
     def test_incomplete_or_overflowed_generation_is_rejected(self):
         changes = [{'done': False}, {'done_reason': 'length'},
@@ -192,9 +237,26 @@ class LocalAIContractTests(unittest.TestCase):
                     self.reader(response)(TEXT)
                 self.assertEqual(caught.exception.code, 'incomplete')
 
+    def test_generation_counts_are_checked_against_requested_context(self):
+        overhead = (len((rasam_ollama._SYSTEM + rasam_ollama._USER_PREFIX).encode('utf-8'))
+                    + OUTPUT_TOKENS + rasam_ollama.TEMPLATE_MARGIN)
+        for target_length in (len(TEXT.encode('utf-8')), 8192 - overhead + 1,
+                              12288 - overhead + 1):
+            text = TEXT + ' ' * (target_length - len(TEXT.encode('utf-8')))
+            context = request_body(text)['options']['num_ctx']
+            with self.subTest(context=context):
+                response = reply()
+                response['prompt_eval_count'] = context - response['eval_count'] - 1
+                self.assertEqual(self.reader(response)(text), fixture())
+                response['prompt_eval_count'] += 1
+                with self.assertRaises(ExtractionError) as caught:
+                    self.reader(response)(text)
+                self.assertEqual(caught.exception.code, 'incomplete')
+
     def test_bad_message_tool_calls_or_mismatched_models_are_rejected(self):
         changes = [{'message': None}, {'message': {'role': 'user', 'content': '{}'}},
                    {'message': {'role': 'assistant', 'content': 'SECRET invalid JSON'}},
+                   {'message': {'role': 'assistant', 'content': '1e999999999999999999999999999'}},
                    {'message': {'role': 'assistant', 'content': '{}', 'tool_calls': ['x']}},
                    {'model': 'different:local'}]
         for change in changes:

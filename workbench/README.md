@@ -100,6 +100,10 @@ With the default OCR reader, a conservative parser looks for explicit Arabic/Eng
 
 Optional Ollama organizes the OCR text locally. Groq sends that text to its cloud service, while the separate OpenAI option sends the original image or PDF. Missing and uncertain fields remain review items. Existing edits are preserved if a read finishes while you are editing; conflicting suggestions have a **Use value** button. Reading or editing a record always requires another human review before approval.
 
+Local AI drafts are checked field by field. Rasam keeps usable fields when another value or review note is malformed, normalizes clear numeric/date formatting, and leaves invalid or ambiguous fields empty with a warning. Main amounts must still match numbers in the recognized source text. Unrecognizable responses and failed AI requests use the disclosed OCR fallback. Expand **Recognized text** beneath the original invoice to inspect what the OCR engine read.
+
+The local model receives shorter OCR-specific instructions and an 8K, 12K, or 16K context allocation sized for the complete request. Its 7,424-byte OCR input limit is unchanged; text is never silently cut to fit. These changes reduce the request size and memory allocation for short invoices, but speed and extraction accuracy still need checking on your computer.
+
 These are implemented behaviors, not measured accuracy claims. This version uses existing models and does not train a new model from your uploads. Company-specific learning from approved corrections remains a [planned feature](https://github.com/20SHA07/Rasam/blob/main/docs/INVOICE-LEARNING.md).
 
 ## Lighter setup and Tesseract

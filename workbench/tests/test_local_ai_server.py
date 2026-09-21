@@ -15,7 +15,7 @@ from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from rasam_ai import ExtractionError
-from rasam_ollama import DEFAULT_OLLAMA_MODEL
+from rasam_ollama import DEFAULT_OLLAMA_MODEL, OllamaTextExtractor
 import start_rasam
 
 
@@ -159,6 +159,43 @@ class LocalAIServerTests(unittest.TestCase):
             self.assertEqual(result['reading']['provider'], 'ocr')
             self.assertEqual(Decimal(result['invoice']['total']), Decimal('115.00'))
             self.assertIn('AI assistance was not applied', ' '.join(result['invoice']['warnings']))
+
+    def test_partial_local_model_draft_keeps_usable_fields_through_http(self):
+        draft = invoice_fixture()
+        draft.update(date='not a date', net=100, vat='15%', warnings=None)
+        calls = []
+
+        def local_reply(request, timeout):
+            calls.append(request.full_url)
+            if request.full_url.endswith('/api/show'):
+                payload = {'details': {'format': 'gguf'},
+                           'capabilities': ['completion'],
+                           'model_info': {'general.architecture': 'qwen3',
+                                          'general.parameter_count': 1700000000,
+                                          'qwen3.context_length': 40960}}
+            else:
+                payload = {'model': DEFAULT_OLLAMA_MODEL, 'done': True,
+                           'done_reason': 'stop', 'prompt_eval_count': 1900,
+                           'eval_count': 180, 'message': {'role': 'assistant',
+                                                        'content': json.dumps(draft)}}
+            return io.BytesIO(json.dumps(payload).encode())
+
+        with self.server(extractor=OllamaTextExtractor(opener=local_reply)) as (call, _):
+            code, result = call('POST', '/api/extract', upload_fixture())
+        self.assertEqual(code, 200, result)
+        self.assertEqual(result['reading']['provider'], 'ollama')
+        self.assertEqual(result['reading']['source_text'], OCR_TEXT)
+        invoice = result['invoice']
+        self.assertEqual(invoice['supplier'], 'Al Noor Stationery')
+        self.assertEqual(invoice['invoiceNumber'], 'R-00042')
+        self.assertEqual(Decimal(invoice['net']), Decimal('100'))
+        self.assertEqual(invoice['total'], '115.00')
+        self.assertIsNone(invoice['date'])
+        self.assertIsNone(invoice['vat'])
+        self.assertTrue({'date', 'vat'}.issubset({w['field'] for w in invoice['field_warnings']}))
+        self.assertNotIn('AI assistance was not applied', ' '.join(invoice['warnings']))
+        self.assertEqual(calls, ['http://127.0.0.1:11434/api/show',
+                                 'http://127.0.0.1:11434/api/chat'])
 
     def test_failed_ocr_does_not_call_local_ai_or_cloud(self):
         def failed_ocr(upload):
