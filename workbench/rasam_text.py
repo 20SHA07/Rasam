@@ -196,8 +196,11 @@ def _issue_date(value):
 
 
 _TAX_LABEL = r'(?:VAT\s*(?:(?:registration|reg\.?)\s*)?(?:number|no\.?|#|ID)|tax\s*(?:(?:registration|reg\.?)\s*)?(?:number|no\.?|#|ID)|TRN|(?:ال)?رقم\s+(?:التسجيل\s+(?:في\s+ضريبة\s+القيمة\s+المضافة|الضريبي)|ضريبة\s+القيمة\s+المضافة|الضريبي)|الرقم\s+الضريبي)'
-_SELLER_LABEL = r'(?:supplier|seller|vendor|المورد|البائع)'
-_BUYER_LABEL = r'(?:customer|buyer|client|bill\s+to|ship\s+to|العميل|المشتري|بيانات\s+العميل|بيانات\s+المشتري)'
+# TRN is a common printed abbreviation after the full registration label.
+# Do not consume other parentheses, which may instead qualify a buyer.
+_TAX_LABEL += r'(?:\s*\(\s*TRN\s*\))?'
+_SELLER_LABEL = r'(?:supplier(?:\s+name)?|seller(?:\s+name)?|vendor(?:\s+name)?|اسم\s+(?:المورد|البائع)|المورد|البائع)'
+_BUYER_LABEL = r'(?:customer(?:\s+name)?|buyer(?:\s+name)?|client(?:\s+name)?|bill(?:ed)?\s+to|sold\s+to|ship(?:ped)?\s+to|اسم\s+(?:العميل|المشتري)|العميل|المشتري|بيانات\s+العميل|بيانات\s+المشتري)'
 _TAX_RATE_LABEL = r'(?:(?:total\s+)?VAT(?:\s+(?:rate|amount))?|tax\s+(?:rate|amount)|(?:نسبة\s+)?(?:ضريبة\s+القيمة\s+المضافة|الضريبة))'
 
 
@@ -247,11 +250,15 @@ def tax_evidence(text):
         if allowed_identifier:
             # Repeated bilingual labels may precede a single printed identifier.
             labels = _TAX_LABEL + r'(?:\s*[/|]\s*' + _TAX_LABEL + r')?'
-            matched = re.fullmatch(labels + r'\s*[:：#]?\s+(.+)|' + labels + r'\s*[:：#]\s*(.+)', id_line, re.I)
-            if matched:
-                identifiers.append(_tax_identifier(matched[1] or matched[2]))
-            elif re.fullmatch(labels + r'\s*[:：]?\s*', id_line, re.I) and index + 1 < len(lines):
-                identifiers.append(_tax_identifier(lines[index + 1]))
+            # Resolve label-only rows first so an optional abbreviation or
+            # bilingual label cannot backtrack into the identifier position.
+            if re.fullmatch(labels + r'\s*[:：]?\s*', id_line, re.I):
+                if index + 1 < len(lines):
+                    identifiers.append(_tax_identifier(lines[index + 1]))
+            else:
+                matched = re.fullmatch(labels + r'\s*[:：#]?\s+(.+)|' + labels + r'\s*[:：#]\s*(.+)', id_line, re.I)
+                if matched:
+                    identifiers.append(_tax_identifier(matched[1] or matched[2]))
 
         # A printed percent must immediately follow its tax label. A discount
         # elsewhere on the same OCR row must not become a VAT percentage.

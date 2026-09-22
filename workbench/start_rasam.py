@@ -63,17 +63,31 @@ def create_server(app_path, port=0, api_key=None, model=None, extractor=None,
                    'OpenAI reading needs an API key. Restart with --provider openai and enter your key there.')
     csrf_token = secrets.token_urlsafe(32)
     capacity = threading.BoundedSemaphore(2 if provider == 'openai' else 1)
+    connection_lock = threading.Lock()
 
-    def read_invoice(upload):
+    def connection_state(refresh=False):
+        nonlocal configured, message, local_ai, engine
+        # Serialize readiness checks and take one consistent snapshot for each
+        # request. Injected status fixtures never perform live network checks.
+        with connection_lock:
+            if refresh and provider == 'ollama' and ollama_info is None:
+                local_ai = ollama_status(chosen_model)
+                configured = bool(local_status['available'] and local_ai['available'])
+                if configured and engine is None:
+                    engine = OllamaTextExtractor(chosen_model)
+                message = local_status['message'] + ' ' + local_ai['message']
+            return configured, message, local_ai, engine
+
+    def read_invoice(upload, active_engine):
         if provider == 'openai':
-            return validate_invoice(engine(upload)), {'provider': 'openai', 'engine': chosen_model, 'source_text': ''}
+            return validate_invoice(active_engine(upload)), {'provider': 'openai', 'engine': chosen_model, 'source_text': ''}
         result = local_reader(upload)
         source_text = result['text']
         warnings = list(result.get('warnings', []))
         metadata = {'provider': 'ocr', 'engine': result['engine'], 'source_text': source_text}
         if provider in ('ollama', 'groq'):
             try:
-                invoice = validate_invoice(engine(source_text))
+                invoice = validate_invoice(active_engine(source_text))
                 invoice['warnings'] = (warnings + invoice['warnings'])[:30]
                 metadata.update(provider=provider, engine=result['engine'] + ' + ' + chosen_model)
                 return validate_invoice(invoice), metadata
@@ -137,10 +151,11 @@ def create_server(app_path, port=0, api_key=None, model=None, extractor=None,
                 return
             path = urlsplit(self.path).path
             if path == '/api/status':
-                self._send(200, {'configured': configured, 'model': chosen_model,
+                ready, detail, current_ai, _ = connection_state(refresh=True)
+                self._send(200, {'configured': ready, 'model': chosen_model,
                                  'csrf_token': csrf_token, 'provider': provider,
-                                 'label': labels[provider], 'message': message, 'ocr': local_status,
-                                 'ollama': local_ai,
+                                 'label': labels[provider], 'message': detail, 'ocr': local_status,
+                                 'ollama': current_ai,
                                  'data_destination': 'local' if provider in ('ocr', 'ollama') else provider}, head=head)
             elif path in ('/', '/Rasam.html'):
                 try:
@@ -183,8 +198,9 @@ def create_server(app_path, port=0, api_key=None, model=None, extractor=None,
             if length > MAX_JSON_BYTES:
                 self._error('file_too_large', 'Choose an invoice smaller than 20 MB.', 413)
                 return
-            if not configured:
-                self._error('not_configured', message, 503)
+            ready, detail, _, active_engine = connection_state()
+            if not ready:
+                self._error('not_configured', detail, 503)
                 return
             if not capacity.acquire(blocking=False):
                 self._error('busy', 'The reader is busy. Wait for the current reading to finish.', 429)
@@ -200,7 +216,7 @@ def create_server(app_path, port=0, api_key=None, model=None, extractor=None,
                     self._error('invalid_upload', 'The upload is damaged. Please upload the invoice again.')
                     return
                 upload = validate_upload(payload)
-                invoice, reading = read_invoice(upload)
+                invoice, reading = read_invoice(upload, active_engine)
                 self._send(200, {'invoice': invoice, 'reading': reading})
             except ExtractionError as exc:
                 self._error(exc.code, exc.message, exc.status)

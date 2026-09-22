@@ -137,6 +137,76 @@ class LocalAIServerTests(unittest.TestCase):
                 self.assertEqual(self.ocr_calls, [])
                 self.assertEqual(self.ai_calls, [])
 
+    def test_check_connection_recovers_when_ollama_starts_and_tracks_restarts(self):
+        model = 'qwen3:1.7b-q4_K_M'
+        stopped = dict(OLLAMA_STATUS, available=False, model=model,
+                       message='Start Ollama on this computer.')
+        missing = dict(stopped, message='Pull the selected local model.')
+        ready = dict(OLLAMA_STATUS, model=model)
+        local_engine = Mock(return_value=invoice_fixture())
+        with (patch.object(start_rasam, 'ollama_status', return_value=stopped) as status_check,
+              patch.object(start_rasam, 'OllamaTextExtractor', return_value=local_engine) as create):
+            with self.server(ollama_info=None, extractor=None, model=model) as (call, status):
+                self.assertFalse(status['configured'])
+                self.assertIn(stopped['message'], status['message'])
+                create.assert_not_called()
+                code, result = call('POST', '/api/extract', upload_fixture())
+                self.assertEqual((code, result['code']), (503, 'not_configured'))
+
+                status_check.return_value = missing
+                _, status = call('GET', '/api/status')
+                self.assertFalse(status['configured'])
+                self.assertIn(missing['message'], status['message'])
+                create.assert_not_called()
+
+                status_check.return_value = ready
+                _, status = call('GET', '/api/status')
+                self.assertTrue(status['configured'])
+                self.assertEqual(status['ollama'], ready)
+                self.assertIn(ready['message'], status['message'])
+                self.assertNotIn(missing['message'], status['message'])
+                self.assertEqual(status['ocr'], OCR_STATUS)
+                self.assertEqual(status['data_destination'], 'local')
+                create.assert_called_once_with(model)
+                self.assertEqual(self.ocr_calls, [])
+                local_engine.assert_not_called()
+                call('GET', '/api/status')
+                create.assert_called_once_with(model)
+                code, result = call('POST', '/api/extract', upload_fixture())
+                self.assertEqual(code, 200, result)
+                self.assertEqual(result['reading']['provider'], 'ollama')
+                local_engine.assert_called_once_with(OCR_TEXT)
+
+                status_check.return_value = stopped
+                _, status = call('GET', '/api/status')
+                self.assertFalse(status['configured'])
+                self.assertEqual(status['ollama'], stopped)
+                code, result = call('POST', '/api/extract', upload_fixture())
+                self.assertEqual((code, result['code']), (503, 'not_configured'))
+                self.assertIn(stopped['message'], result['error'])
+                self.assertEqual(len(self.ocr_calls), 1)
+                self.assertEqual(local_engine.call_count, 1)
+
+                status_check.return_value = ready
+                _, status = call('GET', '/api/status')
+                self.assertTrue(status['configured'])
+                code, result = call('POST', '/api/extract', upload_fixture())
+                self.assertEqual(code, 200, result)
+                self.assertEqual(result['reading']['engine'], 'fixture-ocr + ' + model)
+                self.assertEqual(local_engine.call_count, 2)
+                create.assert_called_once_with(model)
+                self.assertTrue(all(args.args == (model,) for args in status_check.call_args_list))
+
+    def test_injected_status_does_not_query_ollama_on_connection_check(self):
+        with patch.object(start_rasam, 'ollama_status') as status_check:
+            with self.server() as (call, status):
+                code, refreshed = call('GET', '/api/status')
+                self.assertEqual(code, 200)
+                self.assertEqual(refreshed, status)
+                self.assertEqual(self.ocr_calls, [])
+                self.assertEqual(self.ai_calls, [])
+            status_check.assert_not_called()
+
     def test_model_timeout_returns_labelled_ocr_draft_without_cloud_fallback(self):
         def timeout(text):
             self.ai_calls.append(text)

@@ -7,7 +7,7 @@ from urllib import error, request
 
 from rasam_ai import (EXTRACTION_INSTRUCTIONS, INVOICE_SCHEMA, MAX_RESPONSE_BYTES,
                       ExtractionError, validate_invoice)
-from rasam_text import tax_evidence
+from rasam_text import _CURRENCY_RE, tax_evidence
 
 DEFAULT_GROQ_MODEL = 'qwen/qwen3.8-27b'
 GROQ_URL = 'https://api.groq.com/openai/v1/chat/completions'
@@ -51,10 +51,21 @@ def _printed_numbers(text):
     text = text.translate(str.maketrans('٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹', '01234567890123456789'))
     text = text.replace('٬', '').replace('٫', '.')
     numbers = set()
-    for match in re.finditer(r'(?<![\d.,])[-+]?\d+(?:[.,]\d+)*', text):
+    # Accounting parentheses apply only to a single complete number, optionally
+    # accompanied by a known currency label. Do not
+    # carry a sign from prose such as "Total (including VAT)" or from a group
+    # containing several values. Match the whole literal so its unsigned inner
+    # number cannot also ground an incorrectly positive model amount.
+    currency = r'(?:' + _CURRENCY_RE.pattern + r')?'
+    literals = (r'\([ \t]*' + currency + r'[ \t]*'
+                r'(?P<accounting>-?\d+(?:[.,]\d+)*)[ \t]*'
+                + currency + r'[ \t]*\)'
+                r'|(?P<plain>(?<![\d.,])[-+]?\d+(?:[.,]\d+)*)')
+    for match in re.finditer(literals, text, re.I):
         if text[match.end():].lstrip().startswith(('%', '٪')):
             continue
-        raw = match.group()
+        accounting = match.group('accounting') is not None
+        raw = match.group('accounting') if accounting else match.group('plain')
         candidates = {raw}
         if ',' in raw and '.' in raw:
             candidates = {raw.replace(',', '') if raw.rfind('.') > raw.rfind(',')
@@ -67,7 +78,12 @@ def _printed_numbers(text):
             candidates.add(raw.replace('.', ''))
         for value in candidates:
             try:
-                numbers.add(Decimal(value))
+                number = Decimal(value)
+                if accounting:
+                    # copy_* methods preserve all digits without applying the
+                    # current Decimal arithmetic precision.
+                    number = number.copy_abs().copy_negate()
+                numbers.add(number)
             except InvalidOperation:
                 pass
     return numbers

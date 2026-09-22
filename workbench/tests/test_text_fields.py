@@ -193,6 +193,39 @@ class TextDraftTests(unittest.TestCase):
             with self.subTest(heading=heading):
                 self.assertIsNone(self.draft('Invoice\n' + heading + '\nTRN: 001234567890001')['supplierVatNumber'])
 
+    def test_billing_and_arabic_customer_name_headings_never_supply_seller_trn(self):
+        for heading in ('Billed To: Customer Company LLC', 'Sold To: Buyer LLC',
+                        'اسم العميل: شركة المشتري', 'اسم المشتري: شركة العميل'):
+            with self.subTest(heading=heading):
+                result = self.draft('Tax Invoice\n' + heading + '\nTRN: 100987654321003')
+                self.assertIsNone(result['supplierVatNumber'])
+                result = self.draft('Tax Invoice\nSupplier TRN: 001234567890001\n' + heading +
+                                    '\nالرقم الضريبي: ١٠٠٩٨٧٦٥٤٣٢١٠٠٣')
+                self.assertEqual(result['supplierVatNumber'], '001234567890001')
+
+    def test_arabic_seller_name_after_buyer_block_restores_seller_trn(self):
+        for heading in ('اسم المورد: شركة البائع', 'اسم البائع: شركة المورد'):
+            with self.subTest(heading=heading):
+                result = self.draft('Tax Invoice\nBill To: Buyer LLC\nTRN: 100987654321003\n' +
+                                    heading + '\nالرقم الضريبي: ٠٠١٢٣٤٥٦٧٨٩٠٠٠١')
+                self.assertEqual(result['supplierVatNumber'], '001234567890001')
+        result = self.draft('Tax Invoice\nBilled To: Buyer LLC\nTRN: 100987654321003\n'
+                            'Supplier VAT No: 001234567890001')
+        self.assertEqual(result['supplierVatNumber'], '001234567890001')
+
+    def test_parenthetical_trn_abbreviation_with_seller_buyer_and_bilingual_labels(self):
+        for label in ('Tax Registration Number (TRN)', 'Supplier VAT Number (TRN)',
+                      'Tax Registration Number (TRN) / الرقم الضريبي'):
+            for separator in (': ', ':\n'):
+                with self.subTest(label=label, separator=separator):
+                    result = self.draft('Tax Invoice\n' + label + separator + '001234567890001')
+                    self.assertEqual(result['supplierVatNumber'], '001234567890001')
+        for source in ('Customer Tax Registration Number (TRN): 100987654321003',
+                       'Billed To: Buyer LLC\nTax Registration Number (TRN): 100987654321003',
+                       'Tax Registration Number (Customer): 100987654321003'):
+            with self.subTest(source=source):
+                self.assertIsNone(self.draft('Tax Invoice\n' + source)['supplierVatNumber'])
+
     def test_header_registration_and_bilingual_label(self):
         result = self.draft('Invoice\nTRN / الرقم الضريبي: 001234567890001\nCustomer: Buyer Co\nTRN: 009876543210001')
         self.assertEqual(result['supplierVatNumber'], '001234567890001')

@@ -154,7 +154,7 @@ The default model is `gpt-4.1-mini`, overridable with `OPENAI_MODEL`. The backen
 
 **Only text PDFs are available:** PDF support is installed but an image OCR engine is missing. Finish Paddle setup, or install Tesseract and its language packs.
 
-**Ollama is unavailable:** open the Ollama app, then restart the Local-AI launcher. Rasam expects its local service on port 11434. If the app is unavailable, `ollama serve` starts the service from a separate terminal; leave that terminal open.
+**Ollama is unavailable:** open the Ollama app, then click **Check connection** in Rasam. This checks the selected local model again, so Ollama can start or restart without restarting Rasam. Rasam expects its local service on port 11434. If the app is unavailable, `ollama serve` starts the service from a separate terminal; leave that terminal open. Installing new OCR libraries still requires restarting the Rasam launcher.
 
 **Local AI model is missing:** run the exact `ollama pull` command above, wait for it to finish, then restart Rasam. `ollama list` shows downloaded models. The ordinary **Start-Rasam** launcher still works with local OCR while you set up the model.
 

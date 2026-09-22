@@ -71,6 +71,16 @@ class LocalResultTests(unittest.TestCase):
         result = normalize_local_result(draft, 'Credit note\nNet -100.00\nVAT 0\nTotal -100.00')
         self.assertEqual((result['net'], result['vat'], result['total']), ('-100.00', '0', '-100.00'))
 
+    def test_accounting_negative_source_retains_correct_local_ai_amount(self):
+        source = 'Credit note\nNet: (100.00)\nVAT: (15.00)\nTotal: (115.00) SAR'
+        draft = fixture()
+        draft.update(net='(100.00)', vat=Decimal('-15.00'), total='-115.00')
+        result = normalize_local_result(draft, source)
+        self.assertEqual((result['net'], result['vat'], result['total']),
+                         ('-100.00', '-15.00', '-115.00'))
+        draft['total'] = '115.00'
+        self.assertIsNone(normalize_local_result(draft, source)['total'])
+
     def test_booleans_nonfinite_and_complex_money_are_cleared(self):
         for value in (True, False, float('inf'), float('nan'), Decimal('NaN'),
                       Decimal('Infinity'), Decimal('1E+1000000'), Decimal('1E-1000000'),

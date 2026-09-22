@@ -116,6 +116,56 @@ class GroqContractTests(unittest.TestCase):
         self.assertIsNone(result['vat'])
         self.assertEqual(result['field_warnings'], [])
 
+    def test_accounting_parentheses_ground_only_negative_amounts(self):
+        cases = [('Total: (100.00) SAR', '100.00'),
+                 ('Total: (SAR 100.00)', '100.00'),
+                 ('Total: (100.00 SAR)', '100.00'),
+                 ('Total: (aed 100.00)', '100.00'),
+                 ('Total: (100.00 AED)', '100.00'),
+                 ('Total: ( 1,234.50 ) SAR', '1234.50'),
+                 ('Total: (1.234,50) EUR', '1234.50'),
+                 ('الإجمالي (١٬٢٣٤٫٥٠) ر.س', '1234.50'),
+                 ('الإجمالي (ر.س ١٬٢٣٤٫٥٠)', '1234.50'),
+                 ('الإجمالي (١٬٢٣٤٫٥٠ درهم إماراتي)', '1234.50'),
+                 ('Total: (100.000000000000000000000000000001)',
+                  '100.000000000000000000000000000001')]
+        for source, amount in cases:
+            with self.subTest(source=source):
+                invoice = invoice_fixture()
+                invoice.update(net=None, vat=None, total='-' + amount)
+                self.assertEqual(validate_text_result(invoice, source)['total'], '-' + amount)
+                invoice['total'] = amount
+                result = validate_text_result(invoice, source)
+                self.assertIsNone(result['total'])
+                self.assertTrue(any(note['field'] == 'total' for note in result['field_warnings']))
+
+    def test_percentage_parentheses_cannot_ground_monetary_amounts(self):
+        for source in ('VAT (15%)', 'VAT (١٥٪)', 'VAT (15)%'):
+            for amount in ('15', '-15'):
+                with self.subTest(source=source, amount=amount):
+                    invoice = invoice_fixture()
+                    invoice.update(net=None, vat=amount, total=None)
+                    self.assertIsNone(validate_text_result(invoice, source)['vat'])
+
+    def test_prose_and_multiple_number_parentheses_do_not_infer_negative_signs(self):
+        for source in ('Total (including VAT): 100.00',
+                       'Amounts (100.00 115.00)', 'Amounts (100.00, 115.00)',
+                       'Amounts (SAR 100.00 115.00)',
+                       'Total (100.00 AED including VAT)'):
+            with self.subTest(source=source):
+                invoice = invoice_fixture()
+                invoice.update(net=None, vat=None, total='-100.00')
+                self.assertIsNone(validate_text_result(invoice, source)['total'])
+                invoice['total'] = '100.00'
+                self.assertEqual(validate_text_result(invoice, source)['total'], '100.00')
+
+    def test_separate_positive_and_negative_literals_remain_distinct_evidence(self):
+        source = 'Original: 100.00\nAdjustment: (100.00)'
+        invoice = invoice_fixture()
+        invoice.update(net='100.00', vat=None, total='-100.00')
+        result = validate_text_result(invoice, source)
+        self.assertEqual((result['net'], result['total']), ('100.00', '-100.00'))
+
     def test_schema_validation_rejects_unknown_fields_and_unsupported_currency(self):
         for change in ({'invented': 'extra field'}, {'currency': 'KWD'}, {'total': 'NaN'}):
             with self.subTest(change=change):
