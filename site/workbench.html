@@ -2522,8 +2522,15 @@ dialog h2 {
   ['dragleave','drop'].forEach(type=>drop.addEventListener(type,event=>{event.preventDefault();drop.classList.remove('drag-over');}));
   drop.addEventListener('drop',event=>addFiles(event.dataTransfer.files));
   // Prevent dropping a file elsewhere from navigating away and clearing this session.
-  window.addEventListener('dragover',event=>{if(event.dataTransfer.types.includes('Files'))event.preventDefault();});
-  window.addEventListener('drop',event=>{if(event.dataTransfer.types.includes('Files'))event.preventDefault();});
+  function hasDraggedFiles(event) {
+    const types = event?.dataTransfer?.types;
+    if (!types) return false;
+    if (typeof types.includes === 'function') return types.includes('Files');
+    if (typeof types.contains === 'function') return types.contains('Files');
+    return Array.from(types).includes('Files');
+  }
+  window.addEventListener('dragover',event=>{if(hasDraggedFiles(event))event.preventDefault();});
+  window.addEventListener('drop',event=>{if(hasDraggedFiles(event))event.preventDefault();});
   ['sample-button','sidebar-sample','empty-sample'].forEach(id=>$(id).addEventListener('click',()=>addSample()));
   document.querySelectorAll('[data-filter]').forEach(button=>button.addEventListener('click',()=>{
     filter=button.dataset.filter;const shown=shownInvoices();
@@ -2543,7 +2550,13 @@ dialog h2 {
     if(index>=0){const [removed]=invoices.splice(index,1);if(removed.url)URL.revokeObjectURL(removed.url);}
     $('remove-dialog').close();pendingRemoveID=null;currentID=shownInvoices()[0]?.id??null;render();tell('Invoice removed from this session.');
   });
-  window.addEventListener('beforeunload',event=>{if(invoices.some(i=>i.mode!=='sample'||i.approved)){event.preventDefault();event.returnValue='';}});
+  function sampleChanged(item) {
+    if (item.mode !== 'sample') return true;
+    if (item.approved || item.confirmed || item.reviewedAt) return true;
+    if (!item.sample) return true;
+    return ['supplier','invoiceNumber','date','currency','supplierVatNumber','vatRate','net','vat','total'].some(key => String(item[key] ?? '') !== String(item.sample[key] ?? '')) || String(item.notes ?? '') !== '';
+  }
+  window.addEventListener('beforeunload',event=>{if(invoices.some(sampleChanged)){event.preventDefault();event.returnValue='';}});
   $('read-ai-button').addEventListener('click',readWithAI);
   $('ai-check-connection').addEventListener('click',refreshConnection);
   icons();addSample(true);refreshConnection();
